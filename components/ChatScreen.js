@@ -44,6 +44,7 @@ export const ChatScreen = (props) => {
 
     // const [doConnect, setDoConnect] = useState(false);
     const [text, setText] = useState("");
+    const [toUser, setToUser] = useState("");
 
     const socketURL = 'http://10.0.2.2:8080/ws';//'https://ws.postman-echo.com/raw';//'https://socketsbay.com/wss/v2/2/demo/';//'http://localhost:8080/ws';
     
@@ -57,19 +58,24 @@ export const ChatScreen = (props) => {
 
     const onConnected = () => {
         console.warn("Connected");
-        stompClient.subscribe('/chatroom/public', onMessageReceived);
+        // stompClient.subscribe('/chatroom/public', onMessageReceived);
+        stompClient.subscribe('/user/'+props.navigation.state.params.currentUser+'/private', onPrivateMessage);
         // setDoConnect(false);
+    }
+
+    const onPrivateMessage = (msg) => {
+        // console.warn(msg.body);
+        let newMsg = JSON.parse(msg.body);
+        newMsg['status'] = 'SEEN';
+        // console.warn(newMsg);
+        setData(data => [...data, newMsg]);
     }
 
     const onMessageReceived = (msg) => {
         // console.warn(msg.body);
         let newMsg = JSON.parse(msg.body);
         newMsg['status'] = 'SEEN';
-        // console.warn("Find the message--");
-        // console.warn(data[2]);
-        // console.warn(typeof data[2]);
-        console.warn(newMsg);
-        // console.warn(typeof msg.body);
+        // console.warn(newMsg);
         setData(data => [...data, newMsg]);
     }
 
@@ -89,6 +95,29 @@ export const ChatScreen = (props) => {
             }
             // console.warn(newMessage);
             stompClient.send("/app/message", {}, JSON.stringify(newMessage));
+        }
+    }
+
+    const sendPrivateMessage = (msg) => {
+        setText('');
+        // console.warn("sending the msg");
+        if (!props.navigation.state.params.currentUser){
+            console.warn('Username not set');
+        }
+        else if (!toUser){
+            console.warn('Destination User not set');
+        }
+        else{
+            let newMessage = {
+                source: props.navigation.state.params.currentUser,
+                destination: toUser,
+                message: msg,
+                date: (new Date()).toString(),
+                chatRoomId: '',
+                type: 'MESSAGE'
+            }
+            // console.warn(newMessage);
+            stompClient.send("/app/private-message", {}, JSON.stringify(newMessage));
         }
     }
 
@@ -168,7 +197,11 @@ export const ChatScreen = (props) => {
 
     return (
         <View style={{flex:1, flexDirection:'column'}}>
-            <View style={{flex:1, backgroundColor:'green'}}></View>
+            <View style={{flex:1, backgroundColor:'green'}}>
+                <Text>
+                    User: {props.navigation.state.params.currentUser}
+                </Text>
+                </View>
             <View style={{flex:12, backgroundColor:'white', flexDirection:'column'}}>
                 {
                     data.map((item)=>(
@@ -195,6 +228,13 @@ export const ChatScreen = (props) => {
                 
             </View>
             <View style={{flex:1, flexDirection:'row'}}>
+                <TextInput
+                    onChangeText={setToUser}
+                    value={toUser}
+                    placeholder="User"
+                />
+            </View>
+            <View style={{flex:1, flexDirection:'row'}}>
             <View style={{flex:8}}>
                 <TextInput
                     style={styles.input}
@@ -205,7 +245,7 @@ export const ChatScreen = (props) => {
             </View>
             <View style={{flex:2}}>
             <Button
-                    onPress={()=>sendMessage(text)}
+                    onPress={()=>sendPrivateMessage(text)}
                     title="Send"
                     color="blue"
                     accessibilityLabel="Click to send"
