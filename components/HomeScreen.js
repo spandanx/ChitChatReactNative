@@ -1,11 +1,48 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, Button } from 'react-native';
-import { TouchableHighlight } from 'react-native-gesture-handler';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, Button, ActivityIndicator } from 'react-native';
+// import { TouchableHighlight } from 'react-native-gesture-handler';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const HomeScreen = (props) => {
 
     const [user, setUser] = useState('');
     const [isClicked, setIsClick] = useState(false);
+    const [wait, setWait] = useState(true);
+
+    useEffect(()=>{
+        checkUserinStorage();
+    }, []);
+
+    const checkUserinStorage = async() => {
+        try {
+            let userId = await AsyncStorage.getItem('__USERNAME__');
+            console.warn(userId);
+            if (userId!=null && userId!=""){
+                setUser(userId);
+                console.warn("Found userName");
+            }
+            else{
+                console.warn("Could not find userName");
+            }
+          } catch (e) {
+            console.warn(e);
+          }
+          setWait(false);
+    }
+
+    const storeUserinStorage = async(userId) => {
+        try {
+            let userId = await AsyncStorage.setItem('__USERNAME__', userId);
+            console.warn("stored username");
+          } catch (e) {
+            console.warn(e);
+          }
+    }
+
+    const setUserId = (userId) => {
+        setUser(userId);
+        storeUserinStorage(userId);
+    }
 
     let chatContacts = [{
             lastActivity: 1666880022,
@@ -49,24 +86,28 @@ export const HomeScreen = (props) => {
 
     return (
         <View style={{flex:1, flexDirection:'column'}}>
-            {user && isClicked? 
-            chatContacts.map((item)=>
-                showChat(item, props)
-            )
-            :
-            <View style={{flex:1, flexDirection:'column'}}>
-                <TextInput 
-                    onChangeText={setUser}
-                    value={user}
-                    placeholder="Enter username"
-                />
-                <Button
-                    onPress={()=>setIsClick(true)}
-                    title="Send"
-                    color="blue"
-                    accessibilityLabel="Set username"
-                />
-            </View>
+            {wait?
+                <ActivityIndicator size="large" />
+                :
+                user && isClicked? 
+                    chatContacts.map((item)=>
+                        showChat(item, props)
+                    )
+                    :
+                    <View style={{flex:1, flexDirection:'column'}}>
+                        <TextInput 
+                            onChangeText={setUserId}
+                            value={user}
+                            placeholder="Enter username"
+                        />
+                        <Button
+                            onPress={()=>setIsClick(true)}
+                            title="Send"
+                            color="blue"
+                            accessibilityLabel="Set username"
+                        />
+                    </View>
+                
             }
             {emptySpace(6)}
         </View>

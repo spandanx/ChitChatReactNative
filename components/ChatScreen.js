@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {View, Text, Button, TextInput, StyleSheet} from 'react-native';
 import {over} from 'stompjs';
 import SockJS from 'sockjs-client';
+// var RNFS = require('react-native-fs');
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 var stompClient = null;
 
@@ -40,8 +42,6 @@ export const ChatScreen = (props) => {
         currentId = props.navigation.state.params.currentUser;
       }, [props.navigation.state.params.currentUser]);
 
-    
-
     // const [doConnect, setDoConnect] = useState(false);
     const [text, setText] = useState("");
     const [toUser, setToUser] = useState("");
@@ -59,11 +59,11 @@ export const ChatScreen = (props) => {
     const onConnected = () => {
         console.warn("Connected");
         // stompClient.subscribe('/chatroom/public', onMessageReceived);
-        stompClient.subscribe('/user/'+props.navigation.state.params.currentUser+'/private', onPrivateMessage);
+        stompClient.subscribe('/user/'+props.navigation.state.params.currentUser+'/private', onPrivateMessageReceived);
         // setDoConnect(false);
     }
 
-    const onPrivateMessage = (msg) => {
+    const onPrivateMessageReceived = (msg) => {
         // console.warn(msg.body);
         let newMsg = JSON.parse(msg.body);
         newMsg['status'] = 'SEEN';
@@ -123,6 +123,17 @@ export const ChatScreen = (props) => {
 
     const onConnectError = (error) => {
         console.warn(error);
+    }
+
+    const writeToFile = async() => {
+        try {
+            let value = "jshja";
+            // await AsyncStorage.setItem('alpha', value);
+            await AsyncStorage.getItem('alpha').then((value)=>console.warn(value));
+            // console.warn("write complete");
+          } catch (e) {
+            console.warn(e);
+          }
     }
 
     const disconnect = () => {
@@ -223,6 +234,14 @@ export const ChatScreen = (props) => {
                     title="Disconnect"
                     color="red"
                     accessibilityLabel="Click to disconnect"
+                    />
+                }
+                {
+                    <Button
+                    onPress={()=>writeToFile()}
+                    title="Write"
+                    color="blue"
+                    accessibilityLabel="Save"
                     />
                 }
                 
