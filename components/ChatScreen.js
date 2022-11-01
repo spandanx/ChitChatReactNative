@@ -52,14 +52,21 @@ export const ChatScreen = (props) => {
     //--------------------- Websockets section
     const connect = () => {
         let Sock = new SockJS(socketURL);
+        console.log("Sock details");
+        console.log(Sock);
         stompClient = over(Sock);
+        console.log(stompClient);
         stompClient.connect({}, onConnected, onConnectError);
     }
 
     const onConnected = () => {
         console.warn("Connected");
-        // stompClient.subscribe('/chatroom/public', onMessageReceived);
-        stompClient.subscribe('/user/'+props.navigation.state.params.currentUser+'/private', onPrivateMessageReceived);
+        console.log(stompClient);
+        stompClient.subscribe('/chatroom/public', onMessageReceived);
+        // stompClient.subscribe('Consumer.'+props.navigation.state.params.currentUser+'.VirtualTopic.MY-SUPER-TOPIC', onMessageReceived);
+        // console.warn("after subscribe");
+        // console.log(stompClient);
+        // stompClient.subscribe('/user/'+props.navigation.state.params.currentUser+'/private', onPrivateMessageReceived);
         // setDoConnect(false);
     }
 
@@ -72,7 +79,7 @@ export const ChatScreen = (props) => {
     }
 
     const onMessageReceived = (msg) => {
-        // console.warn(msg.body);
+        console.warn(msg.body);
         let newMsg = JSON.parse(msg.body);
         newMsg['status'] = 'SEEN';
         // console.warn(newMsg);
@@ -94,6 +101,7 @@ export const ChatScreen = (props) => {
                 type: 'MESSAGE'
             }
             // console.warn(newMessage);
+            // stompClient.send("/app/message", {}, JSON.stringify(newMessage));
             stompClient.send("/app/message", {}, JSON.stringify(newMessage));
         }
     }
@@ -264,7 +272,7 @@ export const ChatScreen = (props) => {
             </View>
             <View style={{flex:2}}>
             <Button
-                    onPress={()=>sendPrivateMessage(text)}
+                    onPress={()=>sendMessage(text)}
                     title="Send"
                     color="blue"
                     accessibilityLabel="Click to send"

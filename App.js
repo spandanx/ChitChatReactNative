@@ -28,6 +28,7 @@ import {
 
 import { HomeScreen } from './components/HomeScreen';
 import {ChatScreen} from './components/ChatScreen';
+import { LoginScreen } from './components/LoginScreen';
 
 import { createStackNavigator } from 'react-navigation-stack';
 import { createAppContainer } from 'react-navigation';
@@ -69,7 +70,7 @@ const App: () => Node = () => {
 
 
   return (
-    <HomeScreen></HomeScreen>
+    <LoginScreen></LoginScreen>
   );
 };
 
@@ -112,6 +113,9 @@ const styles = StyleSheet.create({
 const RootStack = createStackNavigator({
   Home: {
     screen: HomeScreen
+  },
+  Login:{
+    screen: LoginScreen
   },
   Chat: {
     screen: ChatScreen
