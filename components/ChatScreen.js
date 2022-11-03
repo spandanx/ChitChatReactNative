@@ -36,15 +36,25 @@ export const ChatScreen = (props) => {
         }]
     );
     
-    let currentId = '';
+    // let currentId = '';
 
-    useEffect(() => {
-        currentId = props.navigation.state.params.currentUser;
-      }, [props.navigation.state.params.currentUser]);
+    // useEffect(() => {
+    //     currentId = props.navigation.state.params.currentUser;
+    //   }, [props.navigation.state.params.currentUser]);
 
     // const [doConnect, setDoConnect] = useState(false);
     const [text, setText] = useState("");
     const [toUser, setToUser] = useState("");
+    const [user, setUser] = useState("");
+    const [uuidUser, setUuidUser] = useState("");
+
+    useEffect(() => {
+        if (props && props.navigation && props.navigation.state && props.navigation.state.params && props.navigation.state.params.currentUser && props.navigation.state.params.currentUUID){
+            setUser(props.navigation.state.params.currentUser);
+            setUuidUser(props.navigation.state.params.currentUUID);
+            // console.log(uuidUser);
+        }
+      }, [props]);
 
     const socketURL = 'http://10.0.2.2:8080/ws';//'https://ws.postman-echo.com/raw';//'https://socketsbay.com/wss/v2/2/demo/';//'http://localhost:8080/ws';
     
@@ -53,20 +63,37 @@ export const ChatScreen = (props) => {
     const connect = () => {
         let Sock = new SockJS(socketURL);
         console.log("Sock details");
-        console.log(Sock);
+        // console.log(Sock);
         stompClient = over(Sock);
+        // stompClient = Stomp.client(socketURL);
+
         console.log(stompClient);
-        stompClient.connect({}, onConnected, onConnectError);
+        stompClient.connect({}, onConnected, onConnectError);//{"client-id": props.navigation.state.params.currentUser }
     }
+    // const connect = () => {
+    //     stompClient = Stomp.Client();
+
+    //     stompClient.configure({
+    //     brokerURL: 'http://10.0.2.2:8080/ws',
+    //     onConnected, onConnectError
+    //     });
+
+    //     client.activate();
+    // }
 
     const onConnected = () => {
         console.warn("Connected");
-        console.log(stompClient);
-        stompClient.subscribe('/chatroom/public', onMessageReceived);
+        // console.log(stompClient);
+        // let response = Stomp.topic("/topic").subscribe();
+
+        // stompClient.subscribe('/chatroom/public', onMessageReceived);
+        stompClient.subscribe('/topic/group1', onMessageReceived, {"id":uuidUser, "durable":true, "auto-delete":false});//{"id":1234, "durable":true, "auto-delete":false}
+        // stompClient.subscribe('/chatroom/public', onMessageReceived); //{"activemq.subscriptionName": props.navigation.state.params.currentUser}
+        // stompClient.subscribe('/user/Consumer.myConsumer1.VirtualTopic.MY-SUPER-TOPIC', onMessageReceived);
         // stompClient.subscribe('Consumer.'+props.navigation.state.params.currentUser+'.VirtualTopic.MY-SUPER-TOPIC', onMessageReceived);
         // console.warn("after subscribe");
         // console.log(stompClient);
-        // stompClient.subscribe('/user/'+props.navigation.state.params.currentUser+'/private', onPrivateMessageReceived);
+        // stompClient.subscribe('/user/'+props.navigation.state.params.currentUser+'/private', onPrivateMessageReceived, {customUser: props.navigation.state.params.currentUser});
         // setDoConnect(false);
     }
 
@@ -79,6 +106,7 @@ export const ChatScreen = (props) => {
     }
 
     const onMessageReceived = (msg) => {
+        console.warn("Received");
         console.warn(msg.body);
         let newMsg = JSON.parse(msg.body);
         newMsg['status'] = 'SEEN';
@@ -103,6 +131,7 @@ export const ChatScreen = (props) => {
             // console.warn(newMessage);
             // stompClient.send("/app/message", {}, JSON.stringify(newMessage));
             stompClient.send("/app/message", {}, JSON.stringify(newMessage));
+            // stompClient.publish("/app/message", {}, JSON.stringify(newMessage));
         }
     }
 
@@ -130,7 +159,8 @@ export const ChatScreen = (props) => {
     }
 
     const onConnectError = (error) => {
-        console.warn(error);
+        console.error("ERROR");
+        console.error(error);
     }
 
     const writeToFile = async() => {
@@ -188,7 +218,7 @@ export const ChatScreen = (props) => {
 
     const showChat = (item) => {
         return (
-            item.sender && item.sender==currentId ? 
+            item.sender && item.sender==user ? 
                 (<View style={{flex:1, flexDirection:'row', borderColor:'black', borderWidth:1}}>
                     <View style={{flex:2}}></View>
                     <View style={{flex:8, alignItems:'flex-end'}}>
