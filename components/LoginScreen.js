@@ -2,17 +2,98 @@ import React, { useState, useEffect } from 'react';
 import {View, Button, TextInput, ActivityIndicator} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import uuid from 'react-native-uuid';
+import {phoneToIdUrlPath, idToPhoneUrlPath} from '../properties/networks';
 
 export const LoginScreen = (props) => {
 
     const [user, setUser] = useState('');
-    // const [isClicked, setIsClick] = useState(false);
+    const [phoneNo, setPhoneNo] = useState('');
     const [wait, setWait] = useState(true);
+    const [userUuid, setUserUuid] = useState('');
+    const [phoneRegister, setPhoneRegister] = useState(false);
+    const [idRegister, setIdRegister] = useState(false);
+
 
     useEffect(()=>{
         checkUserinStorage();
         console.warn("User : "+user);
     }, []);
+
+    useEffect(()=>{
+        if (phoneRegister && idRegister){
+            setUserId(user, userUuid, phoneNo);
+            props.navigation.navigate('Home', {currentUser: user, currentUUID: userUuid});
+        }
+
+    }, [phoneRegister, idRegister]);
+
+    const postData = (url, body, successFunc, key, errorMessage) =>{
+
+        fetch(url+'?'+key+"="+body.key, {
+            method: 'GET',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json'
+            }
+            })
+            .then((response) => response.json())
+            .then((responseJson) => {
+                if (responseJson.length==0){
+                    console.warn("Does not exist, so creating"+key);
+                    fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            Accept: 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(body)
+                        })
+                        .then((response) => response.json())
+                        .then((responseJson) => {
+                            console.warn("DONE "+url);
+                            successFunc(true);
+                          })
+                        .catch((err) => console.warn(err));
+                }
+                else{
+                    console.warn(errorMessage);
+                }
+              })
+            .catch((err) => console.warn(err));
+
+        
+    }
+
+    const register = (contactNumber, userUuid) => {
+        let body = {
+            "id" : userUuid,
+            "phonenumber" : contactNumber
+        }
+        //checking if phone number exists
+        console.warn("Checking if already exist");
+        fetch(phoneToIdUrlPath+"?phonenumber="+contactNumber, {
+            method: 'GET',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json'
+            }
+            })
+            .then((response) => response.json())
+            .then((responseJson) => {
+                console.warn(responseJson);
+                if (responseJson.length==0){
+                    console.warn("Phone number does not exist, so creating it");
+                    postData(phoneToIdUrlPath, body, setPhoneRegister, 'phonenumber', 'Contact number already exists, try with another number.');
+                    postData(idToPhoneUrlPath, body, setIdRegister, 'id', 'Could not generate UUID. Please restart the app.');
+                }
+                else{
+                    console.warn("Found existing phone number");
+                    setPhoneRegister(true);
+                    setIdRegister(true);
+                }
+              })
+            .catch((err) => console.warn(err));
+    }
 
     const checkUserinStorage = async() => {
         try {
@@ -46,19 +127,23 @@ export const LoginScreen = (props) => {
           }
     }
 
-    const setUserId = (userId, newUUID) => {
+    const setUserId = async(userId, newUUID, phoneNo) => {
         storeUserinStorage('__USERNAME__', userId);
         storeUserinStorage('__UUID__', newUUID);
+        storeUserinStorage('__CONTACTNO__', phoneNo);
     }
 
     const clickUserSet = (userId) => {
-        if (!userId){
-            console.warn("User not set");
+        if (!userId || !phoneNo){
+            console.warn("User details not set");
         }
         else{
+            console.warn("Registering if does not exist");
             let newUUID = uuid.v4();
-            setUserId(userId, newUUID);
-            props.navigation.navigate('Home', {currentUser: userId, currentUUID: newUUID});
+            setUserUuid(newUUID);
+            register(phoneNo, newUUID);
+            // setUserId(userId, newUUID);
+            // props.navigation.navigate('Home', {currentUser: userId, currentUUID: newUUID});
             // setIsClick(true);
         }
     }
@@ -73,6 +158,12 @@ export const LoginScreen = (props) => {
                         onChangeText={setUser}
                         value={user}
                         placeholder="Enter username"
+                    />
+                    <TextInput 
+                        onChangeText={setPhoneNo}
+                        value={phoneNo}
+                        placeholder="Enter phone number"
+                        keyboardType="numeric"
                     />
                     <Button
                         onPress={()=>clickUserSet(user)}

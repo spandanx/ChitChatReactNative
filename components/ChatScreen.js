@@ -4,6 +4,9 @@ import {over} from 'stompjs';
 import SockJS from 'sockjs-client';
 // var RNFS = require('react-native-fs');
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {socketURL} from '../properties/networks';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+
 
 var stompClient = null;
 
@@ -53,22 +56,27 @@ export const ChatScreen = (props) => {
             setUser(props.navigation.state.params.currentUser);
             setUuidUser(props.navigation.state.params.currentUUID);
             // console.log(uuidUser);
+            // console.warn(props.navigation.state.params.chatDetails.displayName);
+            // console.log(props);
+            connect();
+            
         }
       }, [props]);
-
-    const socketURL = 'http://10.0.2.2:8080/ws';//'https://ws.postman-echo.com/raw';//'https://socketsbay.com/wss/v2/2/demo/';//'http://localhost:8080/ws';
+        //'https://ws.postman-echo.com/raw';//'https://socketsbay.com/wss/v2/2/demo/';//'http://localhost:8080/ws';
     
 
     //--------------------- Websockets section
-    const connect = () => {
-        let Sock = new SockJS(socketURL);
-        console.log("Sock details");
-        // console.log(Sock);
-        stompClient = over(Sock);
-        // stompClient = Stomp.client(socketURL);
+    const connect = async() => {
+        // if (stompClient.connect){
+            let Sock = new SockJS(socketURL);
+            stompClient = over(Sock);
+            // stompClient = Stomp.client(socketURL);
 
-        console.log(stompClient);
-        stompClient.connect({}, onConnected, onConnectError);//{"client-id": props.navigation.state.params.currentUser }
+            console.log(stompClient);
+            stompClient.connect({}, onConnected, onConnectError);//{"client-id": props.navigation.state.params.currentUser }
+        // }
+        // else{
+        // }
     }
     // const connect = () => {
     //     stompClient = Stomp.Client();
@@ -80,14 +88,18 @@ export const ChatScreen = (props) => {
 
     //     client.activate();
     // }
+    const subscribeToGroup = () => {
+        stompClient.subscribe('/topic/group1', onMessageReceived, {"id":uuidUser, "durable":true, "auto-delete":false});//{"id":1234, "durable":true, "auto-delete":false}
+        console.warn("SUBSCRIBED");
+    }
 
     const onConnected = () => {
         console.warn("Connected");
+        console.warn("ISCONNECTED AFTER "+stompClient.connected);
         // console.log(stompClient);
         // let response = Stomp.topic("/topic").subscribe();
-
+        subscribeToGroup();
         // stompClient.subscribe('/chatroom/public', onMessageReceived);
-        stompClient.subscribe('/topic/group1', onMessageReceived, {"id":uuidUser, "durable":true, "auto-delete":false});//{"id":1234, "durable":true, "auto-delete":false}
         // stompClient.subscribe('/chatroom/public', onMessageReceived); //{"activemq.subscriptionName": props.navigation.state.params.currentUser}
         // stompClient.subscribe('/user/Consumer.myConsumer1.VirtualTopic.MY-SUPER-TOPIC', onMessageReceived);
         // stompClient.subscribe('Consumer.'+props.navigation.state.params.currentUser+'.VirtualTopic.MY-SUPER-TOPIC', onMessageReceived);
@@ -246,11 +258,11 @@ export const ChatScreen = (props) => {
 
     return (
         <View style={{flex:1, flexDirection:'column'}}>
-            <View style={{flex:1, backgroundColor:'green'}}>
+            {/* <View style={{flex:1, backgroundColor:'green'}}>
                 <Text>
                     User: {props.navigation.state.params.currentUser}
                 </Text>
-                </View>
+            </View> */}
             <View style={{flex:12, backgroundColor:'white', flexDirection:'column'}}>
                 {
                     data.map((item)=>(
@@ -258,7 +270,7 @@ export const ChatScreen = (props) => {
                     ))
                 }
                 {emptySpace(6)}
-                {
+                {/* {
                 <Button
                     onPress={()=>connect()}
                     title="Connect"
@@ -281,33 +293,41 @@ export const ChatScreen = (props) => {
                     color="blue"
                     accessibilityLabel="Save"
                     />
-                }
+                } */}
                 
             </View>
-            <View style={{flex:1, flexDirection:'row'}}>
+            {/* <View style={{flex:1, flexDirection:'row'}}>
                 <TextInput
                     onChangeText={setToUser}
                     value={toUser}
                     placeholder="User"
                 />
-            </View>
+            </View> */}
             <View style={{flex:1, flexDirection:'row'}}>
-            <View style={{flex:8}}>
-                <TextInput
-                    style={styles.input}
-                    onChangeText={setText}
-                    value={text}
-                    placeholder="Message"
-                />
-            </View>
-            <View style={{flex:2}}>
-            <Button
-                    onPress={()=>sendMessage(text)}
-                    title="Send"
-                    color="blue"
-                    accessibilityLabel="Click to send"
+                <View style={{flex:8}}>
+                    <TextInput
+                        style={styles.input}
+                        onChangeText={setText}
+                        value={text}
+                        placeholder="Message"
                     />
-            </View>
+                </View>
+                <View style={{flex:2}}>
+                    <Icon
+                        name="send"
+                        color="blue"
+                        onPress={()=>sendMessage(text)}
+                        size={30}
+                        style={{padding: 15}}
+                        >
+                        </Icon>
+                    {/* <Button
+                            onPress={()=>sendMessage(text)}
+                            title="Send"
+                            color="blue"
+                            accessibilityLabel="Click to send"
+                            /> */}
+                </View>
             </View>
         </View>
     );

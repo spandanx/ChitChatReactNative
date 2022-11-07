@@ -112,13 +112,19 @@ const styles = StyleSheet.create({
 
 const RootStack = createStackNavigator({
   Home: {
-    screen: HomeScreen
+    screen: HomeScreen,
+    navigationOptions: () => ({
+      title: `Chitchat`,
+    })
   },
   Login:{
     screen: LoginScreen
   },
   Chat: {
-    screen: ChatScreen
+    screen: ChatScreen,
+    navigationOptions: ({ navigation }) => ({
+      title: `${navigation.state.params.chatDetails.displayName}`,
+    })
   }
 });
 
