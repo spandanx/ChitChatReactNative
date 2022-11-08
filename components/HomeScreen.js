@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, Pressable, TextInput, Button, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Modal, Pressable, TextInput, Button, ActivityIndicator, ScrollView, PermissionsAndroid, TouchableOpacity } from 'react-native';
 // import { TouchableHighlight } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 import {socketURL} from '../properties/networks';
 import {over} from 'stompjs';
 import SockJS from 'sockjs-client';
 import {phoneToIdUrlPath} from '../properties/networks';
+
+import Contacts from 'react-native-contacts';
+
+import {styles} from '../style/styles';
 
 
 var stompClient = null;
@@ -42,65 +47,26 @@ export const HomeScreen = (props) => {
 //         uuid: 'dummy_group_uuid1',
 //         subscriptionURL: '/topic/group1'
 //     }
-// ]
-
-    const styles = StyleSheet.create({
-        centeredView: {
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          marginTop: 22,
-          flexDirection:'row'
-        },
-        modalView: {
-          margin: 20,
-          backgroundColor: "white",
-          borderRadius: 20,
-          padding: 35,
-          alignItems: "center",
-          shadowColor: "#000",
-          shadowOffset: {
-            width: 0,
-            height: 2
-          },
-          shadowOpacity: 0.25,
-          shadowRadius: 4,
-          elevation: 5
-        },
-        button: {
-          borderRadius: 20,
-          padding: 10,
-          elevation: 2
-        },
-        buttonOpen: {
-          backgroundColor: "white",
-        },
-        buttonClose: {
-          backgroundColor: "#2196F3",
-        },
-        textStyle: {
-          color: "white",
-          fontWeight: "bold",
-          textAlign: "center"
-        },
-        modalText: {
-          marginBottom: 15,
-          textAlign: "center"
-        }
-      });
+// 
 
     const [chatContacts, setChatContacts] = useState([]);
     const [user, setUser] = useState('');
     const [uuidUser, setUuidUser] = useState('');
     const [userContactNo, setUserContactNo] = useState('');
     const [modalVisible, setModalVisible] = useState(false);
+    const [contactsModalVisible, setContactsModalVisible] = useState(false);
     const [contactNumber, setContactNumber] = useState("");
     const [contactName, setContactName] = useState("");
+    const [allContacts, setAllContacts] = useState([]);
+    const [allValidContacts, setAllValidContacts] = useState([]);
+    const [selectMap, setSelectMap] = useState(new Map());
+    const [selectedContacts, setSelectedContacts] = useState({});
 
     useEffect(()=>{
         checkUserinStorage();
         connect();
         fetchChatInfo();
+        getContacts();
     }, []);
 
     useEffect(()=>{
@@ -114,6 +80,16 @@ export const HomeScreen = (props) => {
     useEffect(()=>{
         storeChatInfo();
     }, [chatContacts]);
+
+    useEffect(()=>{
+        filterValidContacts();
+    }, [allContacts]);
+
+    const filterValidContacts = async() => {
+        let validContacts = [];
+        for (let contact of allContacts) { validContacts.push(contact) };
+        setAllValidContacts(validContacts);
+    }
 
     const storeChatInfo = async() => {
         try {
@@ -205,7 +181,7 @@ export const HomeScreen = (props) => {
             }
             let userContact = await AsyncStorage.getItem('__CONTACTNO__');
                 if (userContact!=null && userContact!=""){
-                    setContactNumber(userContact);
+                    setUserContactNo(userContact);
                     // console.warn("Found uuid");
                 }
                 else{
@@ -241,6 +217,38 @@ export const HomeScreen = (props) => {
             );
         }
         return array;
+    }
+
+    async function requestPermissions() {
+        let status = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.READ_CONTACTS)
+        console.log('status', status)
+    }
+
+    
+
+    const getContacts = () => {
+        PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.READ_CONTACTS, {
+            title: 'Contacts',
+            message: 'This app would like to view your contacts.',
+            buttonPositive: 'Please accept bare mortal',
+        })
+            .then((res) => {
+                console.log('Permission: ', res);
+                Contacts.getAll()
+                    .then((contacts) => {
+                        // console.warn("CONTACTS");
+                        // work with contacts
+                        // for (let contact of contacts) { console.log(contact); }
+                        setAllContacts(contacts);
+                        // console.log(contacts);
+                    })
+                    .catch((e) => {
+                        console.log(e);
+                    });
+            })
+            .catch((error) => {
+                console.error('Permission error: ', error);
+            });
     }
 
     const processNewContact = async(contactNumber) => {
@@ -368,19 +376,164 @@ export const HomeScreen = (props) => {
         </View>
     );
 
+    const truncateSpaces = (text) => {
+        let truncatedtext = "";
+        for (let i = 0; i<text.length; i++){
+            if (text[i]!=' '){
+                truncatedtext += text[i];
+            }
+        }
+        return truncatedtext;
+    }
+
+    const checkIfSelected = (contact) => {
+        if (contact.phoneNumbers.length>0){
+            if (selectMap.has(truncateSpaces(contact.phoneNumbers[0].number))){
+                return {borderLeftWidth: 2, borderLeftColor: 'green', borderRightWidth: 2, borderRightColor: 'green'};
+            }
+        }
+        return {borderLeftWidth: 0};
+    }
+
+    const groupModal = (
+        <View style={styles.centeredView}>
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={contactsModalVisible}
+                onRequestClose={() => {
+                    // Alert.alert("Modal has been closed.");
+                    setContactsModalVisible(!contactsModalVisible);
+                }}
+                >
+                <View style={styles.centeredView}>
+                    <View style={styles.modalView}>
+                        <Icon
+                            name="close"
+                            backgroundColor="blue"
+                            onPress={() => setContactsModalVisible(false)}
+                            style={{
+                                borderRadius: 20,
+                                padding: 10,
+                                elevation: 2,
+                                backgroundColor: "white",
+
+                                alignSelf: 'flex-end',
+                                marginTop: -5,
+                                position: 'absolute'}}
+                            color='red'
+                            size={20}
+                            >
+                        </Icon>
+                        <Text style={styles.modalText}>
+                            <Text style={{flex:6}}>Contacts</Text>
+                            <Text style={{flex:2}}>  </Text>
+                        </Text>
+                        <View style={{marginBottom: 10}}>
+                            {/* <Text style={{flex:1}}>{allValidContacts[0].displayName}</Text> */}
+                            {/* <Text>{selectedContacts.length}</Text> */}
+                            {allValidContacts.map((contact, index) => {
+                                return (
+                                    <TouchableOpacity
+                                        onPress={()=>onPress(contact)} style={checkIfSelected(contact)}>
+
+                                        <Text style={{height:70, width: 300, padding: 5, borderBottomWidth: 1, borderRadius: 2}} >
+                                            <View style={{flex:1, flexDirection:'row'}}>
+                                                <View style={{flex:1}}>
+                                                    <Text style={{justifyContent: 'flex-start'}}>
+                                                        <MaterialIcons name="person" size={30} backgroundColor="blue"
+                                                            onPress={()=>setContactsModalVisible(false)} >
+                                                        </MaterialIcons>
+                                                    </Text>
+                                                </View>
+                                                <View style={{flex:7}}>
+                                                    <Text style={{justifyContent: 'flex-end', fontWeight: 'bold'}}>{contact.displayName}</Text>
+                                                    <Text style={{justifyContent: 'flex-end', fontWeight: 'bold'}}>{contact.phoneNumbers.length>0? contact.phoneNumbers[0].number : ''}</Text>
+                                                </View>
+                                            </View>
+                                        </Text>
+                                    </TouchableOpacity>
+                                )
+                            })}
+                        </View>
+                        
+                    </View>
+                </View>
+            </Modal>
+            <Pressable
+            style={[styles.button, styles.buttonOpen]}
+            onPress={() => setContactsModalVisible(true)}
+            >
+            <Icon
+                name="plus"
+                backgroundColor="blue"
+                >
+                </Icon>
+            </Pressable>
+        </View>
+    );
+
+
+    const addContactToSelection = (contact) => {
+        let localMap = new Map(selectMap);
+        localMap.set(truncateSpaces(contact.phoneNumbers[0].number), contact);
+        setSelectMap(localMap);
+        if (selectedContacts.length>0){
+            setSelectedContacts(selectedContacts => [...selectedContacts, contact]);
+        }
+        else{
+            setSelectedContacts([contact]);
+        }
+        console.warn("Added contact");
+    }
+
+    const removeContactFromSelection = (contact) => {
+        let localMap = new Map(selectMap);
+        localMap.delete(truncateSpaces(contact.phoneNumbers[0].number));
+        setSelectMap(localMap);
+        setSelectedContacts(selectedContacts.filter(item => item.phoneNumbers[0].number !== contact.phoneNumbers[0].number));
+        console.warn("Removed contact");
+    }
+
+    const onPress = (contact) => {
+        // const [selectMap, setSelectMap] = useState(new Map());
+        // const [selectedContacts, setSelectedContacts] = useState({});
+        console.warn("NORMAL PRESS");
+        if (contact.phoneNumbers.length>0){
+            if (selectMap.has(truncateSpaces(contact.phoneNumbers[0].number))){
+                removeContactFromSelection(contact);
+            }
+            else{
+                addContactToSelection(contact);
+            }
+            // console.warn(selectedContacts);
+        }
+        else{
+            console.error("Cannot proceed with contact having no phone number!");
+        }
+        // console.warn(contact.);
+    }
+
     return (
         <View style={{flex:1, flexDirection:'column'}}>
             <View style={{flex:1, flexDirection:'row'}}>
                 <Text style={{flex:1}}>{"User: "+user}</Text>
                 <Text style={{flex:5}}></Text>
-                <Text style={{flex:1}}>{addContact}</Text>
+                {/* <Text style={{flex:1}}>{addContact}</Text> */}
+                <Text style={{flex:1}}>{groupModal}</Text>
+                
             </View>
-            {
-                chatContacts.map((item)=>
-                    showChat(item, props)
-                )
-            }
-            {emptySpace(6)}
+            <View style={{flex:12, flexDirection:'row'}}>
+                <ScrollView style={styles.scrollView}>
+                    {
+                        chatContacts.map((item)=>
+                            showChat(item, props)
+                        )
+                    }
+                    {/* {getContacts()} */}
+                    {emptySpace(6)}
+                </ScrollView>
+            </View>
         </View>
     );
 
