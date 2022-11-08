@@ -49,7 +49,7 @@ export const HomeScreen = (props) => {
 //     }
 // 
 
-    const [chatContacts, setChatContacts] = useState([]);
+    const [chatContacts, setChatContacts] = useState({});
     const [user, setUser] = useState('');
     const [uuidUser, setUuidUser] = useState('');
     const [userContactNo, setUserContactNo] = useState('');
@@ -85,10 +85,60 @@ export const HomeScreen = (props) => {
         filterValidContacts();
     }, [allContacts]);
 
+    const truncateSpaces = (text) => {
+        let truncatedtext = "";
+        for (let i = 0; i<text.length; i++){
+            if (text[i]!=' '){
+                truncatedtext += text[i];
+            }
+        }
+        return truncatedtext;
+    }
+
     const filterValidContacts = async() => {
-        let validContacts = [];
-        for (let contact of allContacts) { validContacts.push(contact) };
-        setAllValidContacts(validContacts);
+        // let validContacts = [];
+        setAllValidContacts([]);
+        for (let contact of allContacts) {
+            if (contact.phoneNumbers.length>0){
+                let phoneNumberOfContact = truncateSpaces(contact.phoneNumbers[0].number);
+                if (phoneNumberOfContact.length>0 && phoneNumberOfContact[0]=='+'){
+                    phoneNumberOfContact = phoneNumberOfContact.substring(1, phoneNumberOfContact.length);
+                }
+                let url = phoneToIdUrlPath+'?phonenumber='+phoneNumberOfContact;
+                fetch(url, {
+                method: 'GET',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json'
+                }
+                })
+                .then((response) => response.json())
+                .then((responseJson) => {
+                    if (responseJson.length==0){
+                        console.warn("Contact number does not exist "+ url);
+                    }
+                    else{
+                        // console.warn(contact);
+                        contact['userUUID'] = responseJson[0].id;
+                        contact['truncatedPhoneNo'] = responseJson[0].phonenumber;
+                        // console.warn(contact);
+                        // console.warn(responseJson);
+                        if (allValidContacts.length==0){
+                            setAllValidContacts([contact]);
+                        }
+                        else{
+                            setAllValidContacts(allValidContacts => [...allValidContacts, contact]);
+                        }
+                        // validContacts.push(contact);
+                    }
+                    
+                })
+                .catch((err) => console.warn(err));
+            }
+            
+        };
+        // setAllValidContacts(validContacts);
+        console.warn("FILTER DONE");
     }
 
     const storeChatInfo = async() => {
@@ -144,13 +194,20 @@ export const HomeScreen = (props) => {
         let incomingInfo = JSON.parse(msg.body);
         if (incomingInfo.type=="PRIVATE_CHAT_INTRO"){
             console.warn("Extending");
-            if (chatContacts.length==0){
-                console.warn("LENGTH 0");
-                setChatContacts([incomingInfo.data]);
+            // if (chatContacts.length==0){
+            //     console.warn("LENGTH 0");
+            //     setChatContacts([incomingInfo.data]);
+            // }
+            // else{
+            //     console.warn("LENGTH >0");
+            //     setChatContacts(chatContacts => [...chatContacts, incomingInfo.data]);
+            // }
+            let contactUUID = incomingInfo.data.uuid;
+            if (Object.keys(chatContacts).length==0){
+                setChatContacts({contactUUID : incomingInfo.data});
             }
             else{
-                console.warn("LENGTH >0");
-                setChatContacts(chatContacts => [...chatContacts, incomingInfo.data]);
+                setChatContacts(chatContacts => ({ ...chatContacts, contactUUID: incomingInfo.data}));
             }
             console.warn(incomingInfo.data);
         }
@@ -251,73 +308,6 @@ export const HomeScreen = (props) => {
             });
     }
 
-    const processNewContact = async(contactNumber) => {
-        setModalVisible(false);
-        let url = phoneToIdUrlPath+'?phonenumber='+contactNumber;
-        console.warn(url);
-        fetch(url, {
-        method: 'GET',
-        headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json'
-        }
-        })
-        .then((response) => response.json())
-        .then((responseJson) => {
-            if (responseJson.length==0){
-                console.warn("Contact number does not exist");
-            }
-            else{
-                // console.warn(responseJson);
-                webSocketConfigureAndForward(responseJson[0]);
-            }
-            
-          })
-        .catch((err) => console.warn(err));
-    }
-
-    const webSocketConfigureAndForward = (contact) => { //{"id": "abc", "phonenumber": "11425"}
-        console.warn("Sending user details");
-        if (contact.id!=uuidUser){
-
-            let newContact = {
-                lastActivity: 1666880122,
-                displayName: contactName,
-                lastChat: '',
-                imageUrl: '',
-                ChatType: 'PRIVATE',
-                uuid: uuidUser,
-                subscriptionURL: '/queue/'+uuidUser+'/'+contact.id
-            }
-
-            let introMessageToSend = 
-            {
-                type: "PRIVATE_CHAT_INTRO",
-                data:
-                {
-                    lastActivity: 1666880122,
-                    displayName: user,
-                    lastChat: '',
-                    imageUrl: '',
-                    ChatType: 'PRIVATE',
-                    uuid: uuidUser,
-                    subscriptionURL: '/queue/'+contact.id+'/'+uuidUser
-                }
-            }
-            stompClient.send("/app/private-message/__self__"+contact.id, {}, JSON.stringify(introMessageToSend));
-            console.warn("SENT user details");
-            if (chatContacts.length==0){
-                setChatContacts([newContact]);
-            }
-            else{
-                setChatContacts(chatContacts => [...chatContacts, newContact]);
-            }
-        }
-        else{
-            console.warn("You cannot chat with yourself, please use a different contact number");
-        }
-    }
-
     const addContact = (
         <View style={styles.centeredView}>
             <Modal
@@ -376,23 +366,78 @@ export const HomeScreen = (props) => {
         </View>
     );
 
-    const truncateSpaces = (text) => {
-        let truncatedtext = "";
-        for (let i = 0; i<text.length; i++){
-            if (text[i]!=' '){
-                truncatedtext += text[i];
-            }
-        }
-        return truncatedtext;
-    }
-
     const checkIfSelected = (contact) => {
         if (contact.phoneNumbers.length>0){
             if (selectMap.has(truncateSpaces(contact.phoneNumbers[0].number))){
-                return {borderLeftWidth: 2, borderLeftColor: 'green', borderRightWidth: 2, borderRightColor: 'green'};
+                return {borderLeftWidth: 3, borderLeftColor: 'green', borderRightWidth: 3, borderRightColor: 'green'};
             }
         }
         return {borderLeftWidth: 0};
+    }
+
+    const processNewContact = async(contact) => {
+        // let contactNumber = selectedContacts[0].phoneNumbers[0].number;
+        let uuid = contact.userUUID;
+        if (uuid!=uuidUser){
+            let newContact = {
+                lastActivity: 1666880122,
+                displayName: contact.displayName,
+                lastChat: '',
+                imageUrl: '',
+                ChatType: 'PRIVATE',
+                uuid: uuid,
+                subscriptionURL: '/queue/'+uuidUser+'/'+uuid
+            }
+            // console.warn("NewContact");
+            // console.warn(newContact);
+            let introMessageToSend = 
+            {
+                type: "PRIVATE_CHAT_INTRO",
+                data:
+                {
+                    lastActivity: 1666880122,
+                    displayName: user,
+                    lastChat: '',
+                    imageUrl: '',
+                    ChatType: 'PRIVATE',
+                    uuid: uuidUser,
+                    subscriptionURL: '/queue/'+uuid+'/'+uuidUser
+                }
+            }
+            // console.warn("introMessageToSend");
+            // console.warn(introMessageToSend);
+            // stompClient.send("/app/private-message/__self__"+contact.id, {}, JSON.stringify(introMessageToSend));
+            // console.warn("SENT user details");
+
+            if (Object.keys(chatContacts).length==0){
+                // console.warn("000000");
+                setChatContacts({[uuid] : newContact});
+            }
+            else{
+                // console.warn("11111111111111");
+                setChatContacts(chatContacts => ({ ...chatContacts, [uuid]: newContact}));
+                console.warn("chatContacts");
+                console.warn(chatContacts);
+            }
+        }
+        else{
+            console.warn("You cannot chat with yourself, please use a different contact number");
+        }
+    }
+
+    const goToChat = async() => {
+        let contactNumber = selectedContacts[0].phoneNumbers[0].number;
+        let uuid = selectedContacts[0].userUUID;
+        let contact = selectedContacts[0];
+        console.warn(selectedContacts);
+        setSelectedContacts([]);
+        setSelectMap(new Map());
+        setContactsModalVisible(false);
+        processNewContact(contact);
+    }
+
+    const createGroup = () => {
+
     }
 
     const groupModal = (
@@ -429,32 +474,78 @@ export const HomeScreen = (props) => {
                             <Text style={{flex:6}}>Contacts</Text>
                             <Text style={{flex:2}}>  </Text>
                         </Text>
-                        <View style={{marginBottom: 10}}>
+                        <View style={{marginBottom: 10, height: 300}}>
                             {/* <Text style={{flex:1}}>{allValidContacts[0].displayName}</Text> */}
                             {/* <Text>{selectedContacts.length}</Text> */}
-                            {allValidContacts.map((contact, index) => {
-                                return (
-                                    <TouchableOpacity
-                                        onPress={()=>onPress(contact)} style={checkIfSelected(contact)}>
+                            <ScrollView horizontal={false}>
+                                {allValidContacts.map((contact, index) => {
+                                    return (
+                                        <TouchableOpacity
+                                            onPress={()=>onPress(contact)} style={checkIfSelected(contact)}>
 
-                                        <Text style={{height:70, width: 300, padding: 5, borderBottomWidth: 1, borderRadius: 2}} >
-                                            <View style={{flex:1, flexDirection:'row'}}>
-                                                <View style={{flex:1}}>
-                                                    <Text style={{justifyContent: 'flex-start'}}>
-                                                        <MaterialIcons name="person" size={30} backgroundColor="blue"
-                                                            onPress={()=>setContactsModalVisible(false)} >
-                                                        </MaterialIcons>
-                                                    </Text>
+                                            <Text style={{height:70, width: 300, padding: 5, borderBottomWidth: 1, borderRadius: 2, backgroundColor:'#F6F6F6'}} >
+                                                <View style={{flex:1, flexDirection:'row'}}>
+                                                    <View style={{flex:1}}>
+                                                        <Text style={{justifyContent: 'flex-start'}}>
+                                                            <MaterialIcons name="person" size={30} backgroundColor="blue"
+                                                                onPress={()=>setContactsModalVisible(false)} >
+                                                            </MaterialIcons>
+                                                        </Text>
+                                                    </View>
+                                                    <View style={{flex:7}}>
+                                                        <Text style={{justifyContent: 'flex-end', fontWeight: 'bold'}}>{contact.displayName}</Text>
+                                                        <Text style={{justifyContent: 'flex-end', fontWeight: 'bold'}}>{contact.phoneNumbers.length>0? contact.phoneNumbers[0].number : ''}</Text>
+                                                    </View>
                                                 </View>
-                                                <View style={{flex:7}}>
-                                                    <Text style={{justifyContent: 'flex-end', fontWeight: 'bold'}}>{contact.displayName}</Text>
-                                                    <Text style={{justifyContent: 'flex-end', fontWeight: 'bold'}}>{contact.phoneNumbers.length>0? contact.phoneNumbers[0].number : ''}</Text>
-                                                </View>
-                                            </View>
-                                        </Text>
-                                    </TouchableOpacity>
-                                )
-                            })}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    )
+                                })}
+                                </ScrollView>
+                        </View>
+                        <View style={{height: 50, marginTop: 10}}>
+                            <Text>
+                                <View style={{flexDirection:"row"}}>
+                                    {selectedContacts.length == 1 &&
+                                        <View style={{flex:1}}>
+                                            <Button
+                                                onPress={()=>goToChat()}
+                                                title="Go to chat"
+                                                color="grey"
+                                                accessibilityLabel="Go to chat"
+                                                />
+                                        </View>
+                                    }
+                                    {selectedContacts.length > 1 &&
+                                        <View style={{flex:1}}>
+                                            <Button
+                                                onPress={()=>createGroup()}
+                                                title="Create group"
+                                                color="grey"
+                                                accessibilityLabel="Create group"
+                                                />
+                                        </View>
+                                    }
+                                </View>
+                            </Text>
+                            {/* <View style={{flexDirection:'column'}}>
+                                <View style={{flex: 1}}>
+                                    <Button
+                                        onPress={()=>console.warn("")}
+                                        title="Create group"
+                                        color="blue"
+                                        accessibilityLabel="Create group"
+                                        />
+                                </View>
+                                <View style={{flex: 1}}>
+                                    <Button
+                                        onPress={()=>console.warn("")}
+                                        title="Create group"
+                                        color="blue"
+                                        accessibilityLabel="Create group"
+                                        />
+                                </View>
+                            </View> */}
                         </View>
                         
                     </View>
@@ -525,10 +616,16 @@ export const HomeScreen = (props) => {
             </View>
             <View style={{flex:12, flexDirection:'row'}}>
                 <ScrollView style={styles.scrollView}>
-                    {
+                    {/* {
                         chatContacts.map((item)=>
                             showChat(item, props)
                         )
+                    } */}
+                    {
+                        Object.keys(chatContacts).map(function(key, index) {
+                            console.warn(index);
+                            return showChat(chatContacts[key], props);
+                          })
                     }
                     {/* {getContacts()} */}
                     {emptySpace(6)}
