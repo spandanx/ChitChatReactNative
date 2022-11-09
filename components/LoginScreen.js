@@ -64,9 +64,16 @@ export const LoginScreen = (props) => {
         
     }
 
-    const register = (contactNumber, userUuid) => {
+    const register = (contactNumber) => {
+
+        if (contactNumber.length>0 && contactNumber[0]=='+'){
+            contactNumber = contactNumber.substring(1, contactNumber.length);
+        }
+        let newUUID = uuid.v4();
+        // setUserUuid(newUUID);
+
         let body = {
-            "id" : userUuid,
+            "id" : newUUID,
             "phonenumber" : contactNumber
         }
         //checking if phone number exists
@@ -88,6 +95,8 @@ export const LoginScreen = (props) => {
                 }
                 else{
                     console.warn("Found existing phone number");
+                    // console.warn("ID - "+  responseJson[0].id);
+                    storeUserinStorage('__UUID__', responseJson[0].id);
                     setPhoneRegister(true);
                     setIdRegister(true);
                 }
@@ -119,9 +128,11 @@ export const LoginScreen = (props) => {
           setWait(false);
     }
 
-    const storeUserinStorage = async(key, userId) => {
+    const storeUserinStorage = async(key, value) => {
         try {
-            await AsyncStorage.setItem(key, userId);
+            if (value!=null && value!=''){
+                await AsyncStorage.setItem(key, value);
+            }
           } catch (e) {
             console.warn(e);
           }
@@ -139,9 +150,7 @@ export const LoginScreen = (props) => {
         }
         else{
             console.warn("Registering if does not exist");
-            let newUUID = uuid.v4();
-            setUserUuid(newUUID);
-            register(phoneNo, newUUID);
+            register(phoneNo);
             // setUserId(userId, newUUID);
             // props.navigation.navigate('Home', {currentUser: userId, currentUUID: newUUID});
             // setIsClick(true);

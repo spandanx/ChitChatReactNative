@@ -115,15 +115,27 @@ const RootStack = createStackNavigator({
     screen: HomeScreen,
     navigationOptions: () => ({
       title: `Chitchat`,
+      headerStyle: {
+        backgroundColor: '#29088A',
+      },
+      headerTintColor: 'white'
     })
   },
   Login:{
-    screen: LoginScreen
+    screen: LoginScreen,
+    headerStyle: {
+      backgroundColor: '#29088A',
+    },
+    headerTintColor: 'white'
   },
   Chat: {
     screen: ChatScreen,
     navigationOptions: ({ navigation }) => ({
       title: `${navigation.state.params.chatDetails.displayName}`,
+      headerStyle: {
+        backgroundColor: '#29088A',
+      },
+      headerTintColor: 'white'
     })
   }
 });

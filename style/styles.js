@@ -44,6 +44,6 @@ export const styles = StyleSheet.create({
       textAlign: "center"
     },
     scrollView: {
-        marginHorizontal: 20,
+        marginHorizontal: 10,
       }
   });

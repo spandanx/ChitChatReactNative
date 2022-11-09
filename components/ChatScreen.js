@@ -89,8 +89,20 @@ export const ChatScreen = (props) => {
     //     client.activate();
     // }
     const subscribeToGroup = () => {
-        stompClient.subscribe('/topic/group1', onMessageReceived, {"id":uuidUser, "durable":true, "auto-delete":false});//{"id":1234, "durable":true, "auto-delete":false}
-        console.warn("SUBSCRIBED");
+        if (props.navigation.state.params.chatDetails.ChatType=='PRIVATE'){
+            //queue subscription
+            stompClient.subscribe('/queue/'+props.navigation.state.params.chatDetails.subscriptionURL, onMessageReceived, {});//{"id":1234, "durable":true, "auto-delete":false}
+            console.warn("SUBSCRIBED to QUEUE");
+        }
+        else if (props.navigation.state.params.chatDetails.ChatType=='GROUP'){
+            stompClient.subscribe('/topic/'+props.navigation.state.params.chatDetails.subscriptionURL, onMessageReceived, {"id":uuidUser, "durable":true, "auto-delete":false});//{"id":1234, "durable":true, "auto-delete":false}
+            console.warn("SUBSCRIBED to TOPIC");
+        }
+        else{
+            console.warn("WRONG CHAT TYPE");
+        }
+        // props.navigation.state.params.chatDetails.subscriptionURL
+        
     }
 
     const onConnected = () => {
@@ -142,8 +154,21 @@ export const ChatScreen = (props) => {
             }
             // console.warn(newMessage);
             // stompClient.send("/app/message", {}, JSON.stringify(newMessage));
-            stompClient.send("/app/message", {}, JSON.stringify(newMessage));
+            // stompClient.send("/app/message", {}, JSON.stringify(newMessage));
             // stompClient.publish("/app/message", {}, JSON.stringify(newMessage));
+            if (props.navigation.state.params.chatDetails.ChatType=='PRIVATE'){
+                //send to queue
+                stompClient.send("/app/private-message/"+props.navigation.state.params.chatDetails.destinationURL, {}, JSON.stringify(newMessage));
+                console.warn("SENT to QUEUE");
+            }
+            else if (props.navigation.state.params.chatDetails.ChatType=='GROUP'){
+                //sent to topic
+                stompClient.send("/app/message/"+props.navigation.state.params.chatDetails.subscriptionURL, {}, JSON.stringify(newMessage));
+                console.warn("SENT to TOPIC");
+            }
+            else{
+                console.warn("WRONG CHAT TYPE TO SEND");
+            }
         }
     }
 
