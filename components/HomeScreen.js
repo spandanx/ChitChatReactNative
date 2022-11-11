@@ -138,13 +138,13 @@ export const HomeScreen = (props) => {
     //     filterValidContacts();
     // }, [allContacts]);
 
-    useEffect(() => {
-        if (props.navigation.isFocused()) {
-            console.warn("FOCUS CHANGED IN HOME"+props.navigation.isFocused());
-            setOpenedChat("");
-            console.warn("Changed Opened Chat value: "+openedChat);
-        }
-      }, [props.navigation.isFocused()]);
+    // useEffect(() => {
+    //     if (props.navigation.isFocused()) {
+    //         console.warn("FOCUS CHANGED IN HOME"+props.navigation.isFocused());
+    //         setOpenedChat("");
+    //         console.warn("Changed Opened Chat value: "+openedChat);
+    //     }
+    //   }, [props.navigation.isFocused()]);
 
     const getCurrentUUID = () => {
         if (props.navigation.state && props.navigation.state.params && props.navigation.state.params.currentUUID!=''){
@@ -267,9 +267,9 @@ export const HomeScreen = (props) => {
     }
 
     const setOpenedChatFunction = async() => {
-        setOpenedChat("");
-        console.warn("OPENED CHAT VALUE CHANGED TO "+openedChat);
-        console.warn("OPENED CHAT VALUE CHANGED TO "+openedChat);
+        // setOpenedChat("");
+        // console.warn("OPENED CHAT VALUE CHANGED TO "+openedChat);
+        // console.warn("OPENED CHAT VALUE CHANGED TO "+openedChat);
     }
 
     const fetchChatInfo = async() => {
@@ -413,7 +413,9 @@ export const HomeScreen = (props) => {
             console.warn("EXPECTED CHAT INDEX "+chatUUIDIndex);
             console.warn("OPENED CHAT INDEX "+openedChat);
             console.warn(openedChat);
-            if (openedChat==chatUUIDIndex){
+            console.warn("ISFOCUSED");
+            console.warn(props.navigation.isFocused());
+            if (props.navigation.isFocused()===false && openedChat==chatUUIDIndex){
                 navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: chatContacts[chatUUIDIndex], stompClient: stompClient, exitFunction: setOpenedChatFunction});
                 // props.navigation.navigate('Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: chatContacts[chatUUIDIndex], stompClient: stompClient, exitFunction: setOpenedChatFunction});//, allChat: chatContacts, chatIndex: chatUUIDIndex
             }
