@@ -344,7 +344,7 @@ export const ChatScreen = (props) => {
 
     const showChat = (item) => {
         return (
-            item.sender && item.sender==user ? 
+            item.senderUUID==props.navigation.state.params.currentUUID ?
                 // (<View style={{flex:1, flexDirection:'row', borderColor:'black', borderWidth:1}}>
                 //     <View style={{flex:2}}></View>
                 //     <View style={{flex:8, alignItems:'flex-end'}}>
@@ -358,30 +358,34 @@ export const ChatScreen = (props) => {
                 //     </View>
                 //     <View style={{flex:2}}></View>
                 // </View>)
-                (<View style={{height: 50, flex:1, flexDirection:'row', borderColor:'black', borderBottomWidth:1, backgroundColor: '#E0E5FD', borderRadius: 3}}>
+                (<View style={{height: 80, flex:1, flexDirection:'row', borderColor:'black', borderBottomWidth:1, backgroundColor: '#E0E5FD', borderRadius: 3}}>
                     <View style={{flex:2}}></View>
                     <View style={{flex:8, alignItems:'flex-end'}}>
-                        <Text>{item.message}</Text>
+                        {/* <Text>{"Sender: "+item.senderUUID}</Text>
+                        <Text>{"Current: "+props.navigation.state.params.currentUUID}</Text> */}
+                        <Text style={{fontWeight: 'bold', color:'blue'}}>{"You"}</Text>
+                        <Text style={{marginRight:5}}>{item.message}</Text>
                     </View>
                 </View>)
                 :
-                (<View style={{height: 50, flex:1, flexDirection:'row', borderColor:'black', borderBottomWidth:1, backgroundColor: '#E0E5FD', borderRadius: 3}}>
+                (<View style={{height: 80, flex:1, flexDirection:'row', borderColor:'black', borderBottomWidth:1, backgroundColor: '#E0E5FD', borderRadius: 3}}>
                     <View style={{flex:8, alignItems:'flex-start'}}>
-                        <Text>{item.message}</Text>
+                        <Text style={{fontWeight: 'bold', color:'blue'}}>{item.senderContactNo}</Text>
+                        <Text style={{marginLeft:5}}>{item.message}</Text>
                     </View>
                     <View style={{flex:2}}></View>
                 </View>)
         );
     }
 
-    const styles = StyleSheet.create({
-        input: {
-          height: 40,
-          margin: 12,
-          borderWidth: 1,
-          padding: 10,
-        },
-      });
+    // const styles = StyleSheet.create({
+    //     input: {
+    //       height: 40,
+    //       margin: 12,
+    //       borderWidth: 1,
+    //       padding: 10,
+    //     },
+    //   });
 
     return (
         <View style={{flex:1, flexDirection:'column'}}>
@@ -453,6 +457,7 @@ export const ChatScreen = (props) => {
                     <Icon
                         name="send"
                         color="blue"
+                        disabled={text===""}
                         onPress={()=>sendMessage(text)}
                         size={30}
                         style={{padding: 15}}
