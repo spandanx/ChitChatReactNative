@@ -6,6 +6,7 @@ import SockJS from 'sockjs-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {socketURL} from '../properties/networks';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import uuid from 'react-native-uuid';
 
 
 var stompClient = null;
@@ -50,30 +51,42 @@ export const ChatScreen = (props) => {
     const [toUser, setToUser] = useState("");
     const [user, setUser] = useState("");
     const [uuidUser, setUuidUser] = useState("");
+    const [subscription, setSubscription] = useState({});
 
     useEffect(() => {
         if (props && props.navigation && props.navigation.state && props.navigation.state.params && props.navigation.state.params.currentUser && props.navigation.state.params.currentUUID){
             setUser(props.navigation.state.params.currentUser);
             setUuidUser(props.navigation.state.params.currentUUID);
+            // props.navigation.state.params.stompClient
             // console.log(uuidUser);
             // console.warn(props.navigation.state.params.chatDetails.displayName);
             // console.log(props);
             connect();
-            
+            return () => {
+                // console.log("EXIT FROM CHATSCREEN");
+                unsubscribe();
+            };
         }
       }, [props]);
+
+    //   useEffect(() => {
+        
+    //   });
         //'https://ws.postman-echo.com/raw';//'https://socketsbay.com/wss/v2/2/demo/';//'http://localhost:8080/ws';
     
 
     //--------------------- Websockets section
     const connect = async() => {
+        console.warn("CONNECTING");
+        console.warn(props.navigation.state.params.stompClient.connected);
+        // stom
         // if (stompClient.connect){
-            let Sock = new SockJS(socketURL);
-            stompClient = over(Sock);
-            // stompClient = Stomp.client(socketURL);
+            // let Sock = new SockJS(socketURL);
+            // stompClient = over(Sock);
 
-            console.log(stompClient);
-            stompClient.connect({}, onConnected, onConnectError);//{"client-id": props.navigation.state.params.currentUser }
+            // console.log(stompClient);
+            // stompClient.connect({}, onConnected, onConnectError);//{"client-id": props.navigation.state.params.currentUser }
+            subscribeToGroup();
         // }
         // else{
         // }
@@ -89,20 +102,45 @@ export const ChatScreen = (props) => {
     //     client.activate();
     // }
     const subscribeToGroup = () => {
-        if (props.navigation.state.params.chatDetails.ChatType=='PRIVATE'){
-            //queue subscription
-            stompClient.subscribe('/queue/'+props.navigation.state.params.chatDetails.subscriptionURL, onMessageReceived, {});//{"id":1234, "durable":true, "auto-delete":false}
-            console.warn("SUBSCRIBED to QUEUE");
-        }
-        else if (props.navigation.state.params.chatDetails.ChatType=='GROUP'){
-            stompClient.subscribe('/topic/'+props.navigation.state.params.chatDetails.subscriptionURL, onMessageReceived, {"id":uuidUser, "durable":true, "auto-delete":false});//{"id":1234, "durable":true, "auto-delete":false}
-            console.warn("SUBSCRIBED to TOPIC");
-        }
-        else{
-            console.warn("WRONG CHAT TYPE");
-        }
-        // props.navigation.state.params.chatDetails.subscriptionURL
+        // if (props.navigation.state.params.chatDetails.ChatType=='PRIVATE'){
+        //     //queue subscription
+        //     props.navigation.state.params.stompClient.subscribe('/queue/'+props.navigation.state.params.chatDetails.subscriptionURL, onMessageReceived, {"id":props.navigation.state.params.currentUUID+"_"+props.navigation.state.params.chatDetails.uuid});//{"id":1234, "durable":true, "auto-delete":false}
+        //     console.warn("SUBSCRIBED to QUEUE");
+        // }
+        // else if (props.navigation.state.params.chatDetails.ChatType=='GROUP'){
+        //     props.navigation.state.params.stompClient.subscribe('/topic/'+props.navigation.state.params.chatDetails.subscriptionURL, onMessageReceived, {"id":props.navigation.state.params.currentUUID+"_"+props.navigation.state.params.chatDetails.uuid, "durable":true, "auto-delete":false});//{"id":1234, "durable":true, "auto-delete":false}
+        //     console.warn("SUBSCRIBED to TOPIC");
+        // }
+        // else{
+        //     console.warn("WRONG CHAT TYPE");
+        // }
+        // // props.navigation.state.params.chatDetails.subscriptionURL
+        // if (props.navigation.state.params.stompClient){
+        //     console.warn("SUBSCRIPTIONS");
+        //     console.warn(props.navigation.state.params.stompClient.subscriptions);
+        // }
         
+    }
+    const onUnsubscribe = () => {
+        console.warn("Unsubscribed");
+    }
+
+    const unsubscribe = async() => {
+        // if (props.navigation.state.params.chatDetails.ChatType=='PRIVATE'){
+        //     //queue subscription
+        //     console.warn(subscription);
+        //     props.navigation.state.params.stompClient.unsubscribe('/queue/'+props.navigation.state.params.chatDetails.subscriptionURL, onUnsubscribe, {"id":props.navigation.state.params.currentUUID+"_"+props.navigation.state.params.chatDetails.uuid});//{"id":1234, "durable":true, "auto-delete":false}
+        //     console.warn("UNSUBSCRIBED from QUEUE");
+        // }
+        // else if (props.navigation.state.params.chatDetails.ChatType=='GROUP'){
+        //     console.warn(subscription);
+        //     props.navigation.state.params.stompClient.unsubscribe('/topic/'+props.navigation.state.params.chatDetails.subscriptionURL, onUnsubscribe, {"id":props.navigation.state.params.currentUUID+"_"+props.navigation.state.params.chatDetails.uuid});//{"id":1234, "durable":true, "auto-delete":false}
+        //     console.warn("UNSUBSCRIBED from TOPIC");
+            
+        // }
+        // else{
+        //     console.warn("WRONG CHAT TYPE");
+        // }
     }
 
     const onConnected = () => {
@@ -121,21 +159,25 @@ export const ChatScreen = (props) => {
         // setDoConnect(false);
     }
 
-    const onPrivateMessageReceived = (msg) => {
-        // console.warn(msg.body);
-        let newMsg = JSON.parse(msg.body);
-        newMsg['status'] = 'SEEN';
-        // console.warn(newMsg);
-        setData(data => [...data, newMsg]);
-    }
+    // const onPrivateMessageReceived = (msg) => {
+    //     // console.warn(msg.body);
+    //     let newMsg = JSON.parse(msg.body);
+    //     newMsg['status'] = 'SEEN';
+    //     // console.warn(newMsg);
+    //     setData(data => [...data, newMsg]);
+    // }
 
     const onMessageReceived = (msg) => {
         console.warn("Received");
         console.warn(msg.body);
-        let newMsg = JSON.parse(msg.body);
-        newMsg['status'] = 'SEEN';
-        // console.warn(newMsg);
-        setData(data => [...data, newMsg]);
+        let msgBody = JSON.parse(msg.body);
+        if (msgBody.type == 'SEND_MESSAGE'){
+            msgBody.data['status'] = 'SEEN';
+            setData(data => [...data, msgBody.data]);
+        }
+        else{
+            console.warn("WRONG MESSAGE TYPE RECEIVED");
+        }
     }
 
     const sendMessage = (msg) => {
@@ -145,12 +187,22 @@ export const ChatScreen = (props) => {
             console.warn('Username not set');
         }
         else{
-            let newMessage = {
-                source: props.navigation.state.params.currentUser,
-                message: msg,
-                date: (new Date()).toString(),
-                chatRoomId: '',
-                type: 'MESSAGE'
+            
+            let newMessage = 
+            {
+                type: "SEND_MESSAGE",
+                data:
+                {
+                    senderContactNo: props.navigation.state.params.userContactNo,
+                    senderUUID: props.navigation.state.params.currentUUID,
+                    chatUUID: props.navigation.state.params.chatDetails.uuid,
+                    messageID: uuid.v4(),
+                    message: msg,
+                    date: (new Date()).toString(),
+                    chatRoomId: '',
+                    type: 'MESSAGE',
+                    status: 'SENT'
+                }
             }
             // console.warn(newMessage);
             // stompClient.send("/app/message", {}, JSON.stringify(newMessage));
@@ -158,12 +210,12 @@ export const ChatScreen = (props) => {
             // stompClient.publish("/app/message", {}, JSON.stringify(newMessage));
             if (props.navigation.state.params.chatDetails.ChatType=='PRIVATE'){
                 //send to queue
-                stompClient.send("/app/private-message/"+props.navigation.state.params.chatDetails.destinationURL, {}, JSON.stringify(newMessage));
+                props.navigation.state.params.stompClient.send("/app/private-message/"+props.navigation.state.params.chatDetails.destinationURL, {}, JSON.stringify(newMessage));
                 console.warn("SENT to QUEUE");
             }
             else if (props.navigation.state.params.chatDetails.ChatType=='GROUP'){
                 //sent to topic
-                stompClient.send("/app/message/"+props.navigation.state.params.chatDetails.subscriptionURL, {}, JSON.stringify(newMessage));
+                props.navigation.state.params.stompClient.send("/app/message/"+props.navigation.state.params.chatDetails.subscriptionURL, {}, JSON.stringify(newMessage));
                 console.warn("SENT to TOPIC");
             }
             else{
@@ -290,7 +342,7 @@ export const ChatScreen = (props) => {
             </View> */}
             <View style={{flex:12, backgroundColor:'white', flexDirection:'column'}}>
                 {
-                    data.map((item)=>(
+                    props.navigation.state.params.chatDetails.chatArray.map((item)=>(
                         showChat(item)
                     ))
                 }

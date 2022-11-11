@@ -11,6 +11,7 @@ import {phoneToIdUrlPath} from '../properties/networks';
 import Contacts from 'react-native-contacts';
 import {styles} from '../style/styles';
 import uuid from 'react-native-uuid';
+// import { useIsFocused } from 'react-navigation';
 
 
 var stompClient = null;
@@ -56,38 +57,114 @@ export const HomeScreen = (props) => {
     const [contactNumber, setContactNumber] = useState("");
     const [contactName, setContactName] = useState("");
     const [allContacts, setAllContacts] = useState([]);
-    const [allValidContacts, setAllValidContacts] = useState([]);
+    const [allValidContacts, setAllValidContacts] = useState(new Map());
     const [selectMap, setSelectMap] = useState(new Map());
     const [selectedContacts, setSelectedContacts] = useState({});
+    const [connected, setConnected] = useState(false);
+    const [allChat, setAllChat] = useState(new Map());
+    // const isFocused = useIsFocused();
 
     useEffect(()=>{
         checkUserinStorage();
         // connect();
         fetchChatInfo();
         getContacts();
+
+        // return () => {
+        //     console.warn("EXIT FROM []");
+        // }
     }, []);
 
     useEffect(()=>{
         if (uuidUser!=''){
             connect();
         }
+        // return () => {
+        //     console.warn("EXIT FROM uuidUser");
+        // }
     }, [uuidUser]);
 
+    // useEffect(() => {
+    //     console.warn("ON FOCUS************************");
+ 
+    //     // Call only when screen open or when back on screen 
+    //     if(isFocused){ 
+    //         console.warn("ON FOCUS IF ************************"); 
+            
+    //     }
+    // }, [isFocused]);
+
+    // useEffect(()=>{
+    //     if (connected === true && Object.keys(chatContacts).length > 0){
+    //         loopSubscribe(chatContacts);
+    //     }
+    //     // if (stompClient!=null){
+    //     //     console.warn("STOMP CLIENT ------ "+stompClient);
+    //     // }
+    //     // if (Object.keys(chatContacts).length > 0){
+    //     //     console.warn("chatContacts ------ ");
+    //     //     console.warn(chatContacts);
+    //     // }
+    // }, [connected, chatContacts]);
+
     useEffect(()=>{
-        if (props && props.navigation && props.navigation.state && props.navigation.state.params && props.navigation.state.params.currentUser && props.navigation.state.params.currentUUID){
+        if (props.navigation.state && props.navigation.state.params && props.navigation.state.params.currentUser!='' && props.navigation.state.params.currentUUID!='' && props.navigation.state.params.userContactNo!=''){
+            console.warn("SETTING ALL ************************");
             setUser(props.navigation.state.params.currentUser);
             setUuidUser(props.navigation.state.params.currentUUID);
+            setUserContactNo(props.navigation.state.params.userContactNo);
+
+            checkUserinStorage();
+            // connect();
+            fetchChatInfo();
+            getContacts();
         }
-        // console.warn(props);
-    }, [props]);
+        console.warn("PROPS CHANGED");
+        console.warn((props.navigation.state!=undefined) + ", "+(props.navigation.state.params!=undefined)+", "+(props.navigation.state && props.navigation.state.params && props.navigation.state.params.currentUser!='')+", "+(props.navigation.state && props.navigation.state.params && props.navigation.state.params.currentUUID!='')+", "+(props.navigation.state && props.navigation.state.params && props.navigation.state.params.userContactNo!=''));
+        console.warn(props);
+        // return () => {
+        //     console.warn("EXIT FROM props");
+        // }
+    }, [props.navigation.state.params?.currentUser, props.navigation.state.params?.currentUUID, props.navigation.state.params?.userContactNo]);
 
     useEffect(()=>{
         storeChatInfo();
+
+        // return () => {
+        //     console.warn("EXIT FROM chatContacts");
+        // }
     }, [chatContacts]);
 
-    useEffect(()=>{
-        filterValidContacts();
-    }, [allContacts]);
+    // useEffect(()=>{
+    //     filterValidContacts();
+    // }, [allContacts]);
+
+    const getCurrentUUID = () => {
+        if (props.navigation.state && props.navigation.state.params && props.navigation.state.params.currentUUID!=''){
+            return props.navigation.state.params.currentUUID;
+        }
+        else{
+            return uuidUser;
+        }
+    }
+
+    const getCurrentUser = () => {
+        if(props.navigation.state && props.navigation.state.params && props.navigation.state.params.currentUser!=''){
+            return props.navigation.state.params.currentUser;
+        }
+        else{
+            return user;
+        }
+    }
+
+    const getUserContactNo = () => {
+        if (props.navigation.state && props.navigation.state.params && props.navigation.state.params.userContactNo!=''){
+            return props.navigation.state.params.userContactNo;
+        }
+        else{
+            return userContactNo;
+        }
+    }
 
     const truncateSpaces = (text) => {
         let truncatedtext = "";
@@ -99,10 +176,30 @@ export const HomeScreen = (props) => {
         return truncatedtext;
     }
 
-    const filterValidContacts = async() => {
+    const loopSubscribe = async(contacts) => {
+        console.warn("LOOP ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
+        Object.keys(contacts).map(function(key, index) {
+            console.warn(chatContacts[key].displayName);
+            if (chatContacts[key].ChatType=='PRIVATE'){
+                //queue subscription
+                stompClient.subscribe('/queue/'+chatContacts[key].subscriptionURL, onMessageReceived, {"id":uuidUser+"_"+chatContacts[key].uuid});//{"id":1234, "durable":true, "auto-delete":false}
+                console.warn("SUBSCRIBED to QUEUE"+chatContacts[key].displayName);
+            }
+            else if (chatContacts[key].ChatType=='GROUP'){
+                stompClient.subscribe('/topic/'+chatContacts[key].subscriptionURL, onMessageReceived, {"id":uuidUser+"_"+chatContacts[key].uuid, "durable":true, "auto-delete":false});//{"id":1234, "durable":true, "auto-delete":false}
+                console.warn("SUBSCRIBED to TOPIC"+chatContacts[key].displayName);
+            }
+            else{
+                console.warn("WRONG CHAT TYPE");
+            }
+            return (chatContacts[key], props);
+          })
+    }
+
+    const filterValidContacts = async(contacts) => {
         // let validContacts = [];
-        setAllValidContacts([]);
-        for (let contact of allContacts) {
+        // setAllValidContacts([]);
+        for (let contact of contacts) {
             if (contact.phoneNumbers.length>0){
                 let phoneNumberOfContact = truncateSpaces(contact.phoneNumbers[0].number);
                 if (phoneNumberOfContact.length>0 && phoneNumberOfContact[0]=='+'){
@@ -128,12 +225,15 @@ export const HomeScreen = (props) => {
                         // console.warn(contact);
                         // console.warn(responseJson);
                         if (allValidContacts.length==0){
-                            setAllValidContacts([contact]);
+                            // setAllValidContacts([contact]);
+                            setAllValidContacts({[responseJson[0].id] : contact});
                         }
                         else{
-                            setAllValidContacts(allValidContacts => [...allValidContacts, contact]);
+                            // setAllValidContacts(allValidContacts => [...allValidContacts, contact]);
+                            setAllValidContacts(allValidContacts => ({ ...allValidContacts, [responseJson[0].id]: contact}));
                         }
                         // validContacts.push(contact);
+                        //----------
                     }
                     
                 })
@@ -153,6 +253,7 @@ export const HomeScreen = (props) => {
             console.warn(e);
           }
     }
+
     const fetchChatInfo = async() => {
         try {
             let chatInfo = await AsyncStorage.getItem('__CHATINFO__');
@@ -178,8 +279,10 @@ export const HomeScreen = (props) => {
 
     const onConnected = async() => {
         console.warn("Connected");
+        // setConnected(true);
         // await delay(2000);
         subcribeToInfoQueue();
+        loopSubscribe(chatContacts);
     }
 
     const onConnectError = (error) => {
@@ -189,15 +292,39 @@ export const HomeScreen = (props) => {
 
     const subcribeToInfoQueue = async() => {
         // console.warn("SUBSCRIBING to "+'/queue/__self__'+uuidUser);
+        let uuidUser = getCurrentUUID();
         if (uuidUser!=''){
-            stompClient.subscribe('/queue/__self__'+uuidUser, onMessageReceived, {});//{"id":uuidUser, "durable":true, "auto-delete":false}
+            stompClient.subscribe('/queue/__self__'+uuidUser, onMessageReceived, {"id":uuidUser});//{"id":uuidUser, "durable":true, "auto-delete":false}
             console.warn("SUBSCRIBED to "+'/queue/__self__'+uuidUser);
+            console.warn("SUBSCRIPTIONS");
+            console.warn(stompClient.subscriptions);
         }
     }
 
     const onMessageReceived = async(msg) => {
         console.warn("INFO Messages recieved----");
+        console.warn("BEFORE receiving");
+        console.warn(chatContacts);
         let incomingInfo = JSON.parse(msg.body);
+
+        incomingInfo.data["chatArray"] = 
+        [{
+            date: 1666880022,
+            message: "Hi",
+            type: 'CHAT',
+            source: 'ID1',
+            destination: '',
+            status: 'SEEN'
+        },
+        {
+            date: 1666880122,
+            message: "Hey",
+            type: 'CHAT',
+            source: 'ID2',
+            destination: '',
+            status: 'DELIVERED'
+        }];
+
         if (incomingInfo.type=="PRIVATE_CHAT_INTRO"){
             console.warn("Extending");
 
@@ -226,6 +353,8 @@ export const HomeScreen = (props) => {
         else{
             console.warn("Other category");
         }
+        console.warn("AFTER receiving");
+        console.warn(chatContacts);
     }
 
     const checkUserinStorage = async() => {
@@ -264,7 +393,7 @@ export const HomeScreen = (props) => {
 
     const showChat = (item, props) => {
         return (
-            <Text onPress={()=>props.navigation.navigate('Chat', {currentUser: user, currentUUID: uuidUser, chatDetails: item})} key={item.uuid} style={{height: 50, flex:1, flexDirection:'row', borderColor:'black', borderBottomWidth:1, backgroundColor: '#E0E5FD', borderRadius: 3}}>
+            <Text onPress={()=>props.navigation.navigate('Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: item, stompClient: stompClient})} key={item.uuid} style={{height: 50, flex:1, flexDirection:'row', borderColor:'black', borderBottomWidth:1, backgroundColor: '#E0E5FD', borderRadius: 3}}>
                 <View style={{flex:1}}></View>
                 <View style={{flex:20, alignItems:'flex-start'}}>
                     <Text style={{fontWeight: "bold"}}>{item.displayName}</Text>
@@ -308,7 +437,8 @@ export const HomeScreen = (props) => {
                         // console.warn("CONTACTS");
                         // work with contacts
                         // for (let contact of contacts) { console.log(contact); }
-                        setAllContacts(contacts);
+                        // setAllContacts(contacts);
+                        filterValidContacts(contacts);
                         // console.log(contacts);
                     })
                     .catch((e) => {
@@ -437,9 +567,9 @@ export const HomeScreen = (props) => {
                 // console.warn(chatContacts);
             }
             //######### UNCOMMENT
-            // queue subscription
-            stompClient.subscribe('/queue/'+newContact.subscriptionURL, onMessageReceived, {});
-            props.navigation.navigate('Chat', {currentUser: contact.displayName, currentUUID: uuid, chatDetails: newContact});
+            // queue subscription to be done in the chat itself
+            // stompClient.subscribe('/queue/'+newContact.subscriptionURL, onMessageReceived, {});
+            props.navigation.navigate('Chat', {currentUser: contact.displayName, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: newContact, stompClient: stompClient});
             //######### UNCOMMENT
         }
         else{
@@ -497,8 +627,8 @@ export const HomeScreen = (props) => {
         }
         //######### UNCOMMENT
         // topic subscription
-        stompClient.subscribe('/topic/'+newContact.subscriptionURL, onMessageReceived, {"id":uuidUser, "durable":true, "auto-delete":false});
-        props.navigation.navigate('Chat', {currentUser: "Unnamed Group", currentUUID: groupUUID, chatDetails: newContact});
+        // stompClient.subscribe('/topic/'+newContact.subscriptionURL, onMessageReceived, {"id":uuidUser, "durable":true, "auto-delete":false});
+        props.navigation.navigate('Chat', {currentUser: "Unnamed Group", currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: newContact, stompClient: stompClient});
         // ######### UNCOMMENT
     }
 
@@ -558,10 +688,12 @@ export const HomeScreen = (props) => {
                             {/* <Text style={{flex:1}}>{allValidContacts[0].displayName}</Text> */}
                             {/* <Text>{selectedContacts.length}</Text> */}
                             <ScrollView horizontal={false}>
-                                {allValidContacts.map((contact, index) => {
+                                {/* {allValidContacts.map((contact, index) => { */}
+                                { Object.keys(allValidContacts).map(function(key, index) {
+
                                     return (
                                         <TouchableOpacity
-                                            onPress={()=>onPress(contact)} style={checkIfSelected(contact)}>
+                                            onPress={()=>onPress(allValidContacts[key])} style={checkIfSelected(allValidContacts[key])}>
 
                                             <Text style={{height:70, width: 300, padding: 5, borderBottomWidth: 1, borderRadius: 2, backgroundColor:'#F6F6F6'}} >
                                                 <View style={{flex:1, flexDirection:'row'}}>
@@ -573,8 +705,8 @@ export const HomeScreen = (props) => {
                                                         </Text>
                                                     </View>
                                                     <View style={{flex:7}}>
-                                                        <Text style={{justifyContent: 'flex-end', fontWeight: 'bold'}}>{contact.displayName}</Text>
-                                                        <Text style={{justifyContent: 'flex-end', fontWeight: 'bold'}}>{contact.phoneNumbers.length>0? contact.phoneNumbers[0].number : ''}</Text>
+                                                        <Text style={{justifyContent: 'flex-end', fontWeight: 'bold'}}>{allValidContacts[key].displayName}</Text>
+                                                        <Text style={{justifyContent: 'flex-end', fontWeight: 'bold'}}>{allValidContacts[key].phoneNumbers.length>0? allValidContacts[key].phoneNumbers[0].number : ''}</Text>
                                                     </View>
                                                 </View>
                                             </Text>
@@ -596,7 +728,12 @@ export const HomeScreen = (props) => {
                                                 />
                                         </View>
                                     }
-                                    {selectedContacts.length > 1 &&
+                                    {
+                                        <View style={{flex:1}}>
+                                            <Text>    </Text>
+                                        </View>
+                                    }
+                                    {selectedContacts.length >= 1 &&
                                         <View style={{flex:1}}>
                                             <Button
                                                 onPress={()=>createGroup()}
@@ -688,8 +825,11 @@ export const HomeScreen = (props) => {
     return (
         <View style={{flex:1, flexDirection:'column'}}>
             <View style={{flex:1, flexDirection:'row'}}>
-                <Text style={{flex:5}}>{user+", "+userContactNo}</Text>
-                <Text style={{flex:5}}>{"uuidUser "+uuidUser}</Text>
+                    <Text style={{flex:5}}>{"User: "+getCurrentUser()}</Text>
+                    <Text style={{flex:5}}>{"UUID: "+getCurrentUUID()}</Text>
+                    <Text style={{flex:5}}>{"Contact: "+getUserContactNo()}</Text>
+                {/* <Text style={{flex:5}}>{user+", "+userContactNo}</Text>
+                <Text style={{flex:5}}>{"uuidUser "+uuidUser}</Text> */}
                 {/* <Text style={{flex:5}}>{"props "+props.navigation.state.params.currentUUID}</Text> */}
                 {/* <Text style={{flex:1}}>{addContact}</Text> */}
                 <Text style={{flex:1}}>{groupModal}</Text>

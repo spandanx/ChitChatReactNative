@@ -22,7 +22,7 @@ export const LoginScreen = (props) => {
     useEffect(()=>{
         if (phoneRegister && idRegister){
             setUserId(user, userUuid, phoneNo);
-            props.navigation.navigate('Home', {currentUser: user, currentUUID: userUuid});
+            props.navigation.navigate('Home', {currentUser: user, currentUUID: userUuid, userContactNo: phoneNo});
         }
 
     }, [phoneRegister, idRegister]);
@@ -97,6 +97,7 @@ export const LoginScreen = (props) => {
                     console.warn("Found existing phone number");
                     // console.warn("ID - "+  responseJson[0].id);
                     storeUserinStorage('__UUID__', responseJson[0].id);
+                    setUserUuid(responseJson[0].id);
                     setPhoneRegister(true);
                     setIdRegister(true);
                 }
@@ -113,7 +114,14 @@ export const LoginScreen = (props) => {
                 let existingUUID = await AsyncStorage.getItem('__UUID__');
                 if (existingUUID!=null && existingUUID!=""){
                     console.warn("Found UUID");
-                    props.navigation.navigate('Home', {currentUser: userId, currentUUID: existingUUID});
+                    let existingPhNo = await AsyncStorage.getItem('__CONTACTNO__');
+                    if (existingPhNo!=null && existingPhNo!=""){
+                        console.warn("Found ContactNumber");
+                        props.navigation.navigate('Home', {currentUser: userId, currentUUID: existingUUID, userContactNo: existingPhNo});
+                    }
+                    else{
+                        console.warn("could not found ContactNumber");
+                    }
                 }
                 else{
                     console.warn("could not found UUID");
