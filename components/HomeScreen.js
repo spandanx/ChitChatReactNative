@@ -266,10 +266,32 @@ export const HomeScreen = (props) => {
           }
     }
 
-    const setOpenedChatFunction = async() => {
-        // setOpenedChat("");
-        // console.warn("OPENED CHAT VALUE CHANGED TO "+openedChat);
-        // console.warn("OPENED CHAT VALUE CHANGED TO "+openedChat);
+    const modifyChat = async(modifiedArray, chatIndex) => {
+        console.warn("MODIFY CALLED");
+        console.warn(modifiedArray);
+
+        let localChatContact = chatContacts;
+        // let destinationContact = localChatContact[chatIndex];
+        // let previousChatArray = destinationContact.chatArray;
+        // console.warn(previousChatArray);
+        // console.warn("MODIFICATION");
+        // previousChatArray.push(newChat);
+        // console.warn(previousChatArray);
+        localChatContact[chatIndex].chatArray = modifiedArray;
+        // console.warn("FULL");
+        // console.warn(localChatContact);
+        setChatContacts(localChatContact);
+        storeChatInfo();
+        // console.warn("EXPECTED CHAT INDEX "+chatUUIDIndex);
+        // console.warn("OPENED CHAT INDEX "+openedChat);
+        // console.warn(openedChat);
+        // console.warn("ISFOCUSED");
+        // console.warn(props.navigation.isFocused());
+        // if (props.navigation.isFocused()===false && openedChat==chatUUIDIndex){
+        navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: chatContacts[chatIndex], stompClient: stompClient, modifyChatFunction: modifyChat, chatIndex: chatIndex});
+            // props.navigation.navigate('Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: chatContacts[chatUUIDIndex], stompClient: stompClient, modifyChatFunction: modifyChat});//, allChat: chatContacts, chatIndex: chatUUIDIndex
+        // }
+
     }
 
     const fetchChatInfo = async() => {
@@ -333,23 +355,7 @@ export const HomeScreen = (props) => {
         if (incomingInfo.type=="PRIVATE_CHAT_INTRO"){
             console.warn("Extending");
 
-            incomingInfo.data["chatArray"] = 
-                [{
-                    date: 1666880022,
-                    message: "Hi",
-                    type: 'CHAT',
-                    source: 'ID1',
-                    destination: '',
-                    status: 'SEEN'
-                },
-                {
-                    date: 1666880122,
-                    message: "Hey",
-                    type: 'CHAT',
-                    source: 'ID2',
-                    destination: '',
-                    status: 'DELIVERED'
-                }];
+            // incomingInfo.data["chatArray"] = [];
 
             let contactUUID = incomingInfo.data.uuid;
             if (Object.keys(chatContacts).length==0){
@@ -369,6 +375,7 @@ export const HomeScreen = (props) => {
             
         }
         else if (incomingInfo.type=="GROUP_CHAT_INTRO"){
+            // incomingInfo.data["chatArray"] = [];
             let contactUUID = incomingInfo.data.uuid;
             if (Object.keys(chatContacts).length==0){
                 setChatContacts({[contactUUID] : incomingInfo.data});
@@ -391,11 +398,14 @@ export const HomeScreen = (props) => {
             // console.warn("chatContacts");
             // console.warn(chatContacts);
             let chatUUIDIndex = null;
+            let prefix = "";
             if (incomingInfo.data.ChatType=="PRIVATE"){
                 chatUUIDIndex = incomingInfo.data.senderUUID;
+                prefix = "PRIVATE_";
             }
             else{
                 chatUUIDIndex = incomingInfo.data.chatUUID;
+                prefix = "GROUP_";
             }
             console.warn("chatUUIDIndex: "+ chatUUIDIndex);
             let localChatContact = chatContacts;
@@ -406,18 +416,18 @@ export const HomeScreen = (props) => {
             previousChatArray.push(incomingInfo.data);
             console.warn(previousChatArray);
             localChatContact[chatUUIDIndex].chatArray = previousChatArray;
-            console.warn("FULL");
-            console.warn(localChatContact);
+            // console.warn("FULL");
+            // console.warn(localChatContact);
             setChatContacts(localChatContact);
             storeChatInfo();
-            console.warn("EXPECTED CHAT INDEX "+chatUUIDIndex);
+            console.warn("EXPECTED CHAT INDEX "+(prefix+chatUUIDIndex));
             console.warn("OPENED CHAT INDEX "+openedChat);
             console.warn(openedChat);
             console.warn("ISFOCUSED");
             console.warn(props.navigation.isFocused());
-            if (props.navigation.isFocused()===false && openedChat==chatUUIDIndex){
-                navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: chatContacts[chatUUIDIndex], stompClient: stompClient, exitFunction: setOpenedChatFunction});
-                // props.navigation.navigate('Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: chatContacts[chatUUIDIndex], stompClient: stompClient, exitFunction: setOpenedChatFunction});//, allChat: chatContacts, chatIndex: chatUUIDIndex
+            if (props.navigation.isFocused()===false && openedChat==(prefix+chatUUIDIndex)){
+                navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: chatContacts[chatUUIDIndex], stompClient: stompClient, modifyChatFunction: modifyChat, chatIndex: chatUUIDIndex});
+                // props.navigation.navigate('Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: chatContacts[chatUUIDIndex], stompClient: stompClient, modifyChatFunction: modifyChat});//, allChat: chatContacts, chatIndex: chatUUIDIndex
             }
         }
         else{
@@ -465,21 +475,24 @@ export const HomeScreen = (props) => {
         // console.log("PARAMS");
         // console.log(params);
         // let chatUUIDIndex = null;
-        // if (params.chatDetails.ChatType=="PRIVATE"){
-        //     chatUUIDIndex = params.chatDetails.senderUUID;
-        // }
-        // else{
-        //     chatUUIDIndex = params.chatDetails.chatUUID;
-        // }
-        setOpenedChat(params.chatDetails.uuid);
-        console.warn("SELECTED CHAT INDEX "+params.chatDetails.uuid);
+        if (params.chatDetails.ChatType=="PRIVATE"){
+            setOpenedChat("PRIVATE_"+params.chatDetails.uuid);
+            console.warn("SELECTED CHAT INDEX "+"PRIVATE_"+params.chatDetails.uuid);
+            // chatUUIDIndex = params.chatDetails.senderUUID;
+        }
+        else{
+            setOpenedChat("GROUP_"+params.chatDetails.uuid);
+            console.warn("SELECTED CHAT INDEX "+"GROUP_"+params.chatDetails.uuid);
+            // chatUUIDIndex = params.chatDetails.chatUUID;
+        }
+        // setOpenedChat(params.chatDetails.uuid);
         props.navigation.navigate(ScreenName, params);
     }
 
     const showChat = (item, props, index) => {
         // , allChat: chatContacts, chatIndex: index
         return (
-            <Text onPress={()=>navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: item, stompClient: stompClient, exitFunction: setOpenedChatFunction})} key={item.uuid} style={{height: 50, flex:1, flexDirection:'row', borderColor:'black', borderBottomWidth:1, backgroundColor: '#E0E5FD', borderRadius: 3}}>
+            <Text onPress={()=>navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: item, stompClient: stompClient, modifyChatFunction: modifyChat, chatIndex: index})} key={item.uuid} style={{height: 50, flex:1, flexDirection:'row', borderColor:'black', borderBottomWidth:1, backgroundColor: '#E0E5FD', borderRadius: 3}}>
                 <View style={{flex:1}}></View>
                 <View style={{flex:20, alignItems:'flex-start'}}>
                     <Text style={{fontWeight: "bold"}}>{item.displayName}</Text>
@@ -617,23 +630,7 @@ export const HomeScreen = (props) => {
                 uuid: uuid,
                 destinationURL: uuid+'_'+uuidUser,
                 subscriptionURL: uuidUser+'_'+uuid,
-                "chatArray": 
-                    [{
-                        date: 1666880022,
-                        message: "Hi",
-                        type: 'CHAT',
-                        source: 'ID1',
-                        destination: '',
-                        status: 'SEEN'
-                    },
-                    {
-                        date: 1666880122,
-                        message: "Hey",
-                        type: 'CHAT',
-                        source: 'ID2',
-                        destination: '',
-                        status: 'DELIVERED'
-                    }]
+                "chatArray": []
             }
             // console.warn("NewContact");
             // console.warn(newContact);
@@ -650,7 +647,8 @@ export const HomeScreen = (props) => {
                     ChatType: 'PRIVATE',
                     uuid: uuidUser,
                     destinationURL: uuidUser+'_'+uuid,
-                    subscriptionURL: uuid+'_'+uuidUser
+                    subscriptionURL: uuid+'_'+uuidUser,
+                    "chatArray": []
                 }
             }
             
@@ -674,8 +672,8 @@ export const HomeScreen = (props) => {
             if (!uuid in chatContacts){
                 stompClient.subscribe('/queue/'+newContact.subscriptionURL, onMessageReceived, {});
             }
-            navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: newContact, stompClient: stompClient, exitFunction: setOpenedChatFunction});
-            // props.navigation.navigate('Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: newContact, stompClient: stompClient, exitFunction: setOpenedChatFunction});//, allChat: chatContacts, chatIndex: uuid
+            navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: newContact, stompClient: stompClient, modifyChatFunction: modifyChat, chatIndex: uuid});
+            // props.navigation.navigate('Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: newContact, stompClient: stompClient, modifyChatFunction: modifyChat});//, allChat: chatContacts, chatIndex: uuid
             //######### UNCOMMENT
         }
         else{
@@ -696,11 +694,16 @@ export const HomeScreen = (props) => {
             ChatType: 'GROUP',
             uuid: groupUUID,
             destinationURL: groupUUID,
-            subscriptionURL: groupUUID
+            subscriptionURL: groupUUID,
+            "chatArray": []
         }
         console.warn(contacts.length);
         for (let i = 0; i<contacts.length; i++){
-            if (contacts[i].phoneNumbers[0].number!=userContactNo){
+            console.warn("ITERATING");
+            console.warn(truncateSpaces(contacts[i].phoneNumbers[0].number));
+            console.warn(truncateSpaces(userContactNo));
+            console.warn(truncateSpaces(contacts[i].phoneNumbers[0].number)!=truncateSpaces(userContactNo));
+            if (truncateSpaces(contacts[i].phoneNumbers[0].number)!=truncateSpaces(userContactNo)){
                 // console.warn("NewContact");
                 // console.warn(newContact);
                 let introMessageToSend = 
@@ -715,13 +718,17 @@ export const HomeScreen = (props) => {
                         ChatType: 'GROUP',
                         uuid: groupUUID,
                         destinationURL: groupUUID,
-                        subscriptionURL: groupUUID
+                        subscriptionURL: groupUUID,
+                        "chatArray": []
                     }
                 }
                 
-                //sending INTRO message to receiver so that the receiver subscribes to the chat
+                // //sending INTRO message to receiver so that the receiver subscribes to the chat
                 stompClient.send("/app/private-message/__self__"+contacts[i].userUUID, {}, JSON.stringify(introMessageToSend));
-                console.warn("SENDING TO- __self__"+contacts[i].userUUID);
+                // console.warn("SENDING TO- __self__"+contacts[i].userUUID);
+            }
+            else{
+                console.warn("DISCARDING");
             }
         }
         //Adding the new contact to the sender's home screen.
@@ -733,10 +740,12 @@ export const HomeScreen = (props) => {
         }
         //######### UNCOMMENT
         // topic subscription
-        // stompClient.subscribe('/topic/'+newContact.subscriptionURL, onMessageReceived, {"id":uuidUser, "durable":true, "auto-delete":false});
+        stompClient.subscribe('/topic/'+newContact.subscriptionURL, onMessageReceived, {"id":uuidUser, "durable":true, "auto-delete":false});
         
-        navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: newContact, stompClient: stompClient, exitFunction: setOpenedChatFunction});
-        // props.navigation.navigate('Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: newContact, stompClient: stompClient, exitFunction: setOpenedChatFunction});
+        navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: newContact, stompClient: stompClient, modifyChatFunction: modifyChat, chatIndex: groupUUID});
+
+
+        // props.navigation.navigate('Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: newContact, stompClient: stompClient, modifyChatFunction: modifyChat});
         // ######### UNCOMMENT
     }
 

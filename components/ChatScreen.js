@@ -67,7 +67,7 @@ export const ChatScreen = (props) => {
         if (props && props.navigation && props.navigation.state && props.navigation.state.params && props.navigation.state.params.currentUser && props.navigation.state.params.currentUUID){
             setUser(props.navigation.state.params.currentUser);
             setUuidUser(props.navigation.state.params.currentUUID);
-            // props.navigation.state.params.exitFunction
+            // props.navigation.state.params.modifyChatFunction
             // props.navigation.state.params.stompClient
             // console.log(uuidUser);
             // console.warn(props.navigation.state.params.chatDetails.displayName);
@@ -246,6 +246,9 @@ export const ChatScreen = (props) => {
                 //send to queue
                 props.navigation.state.params.stompClient.send("/app/private-message/"+props.navigation.state.params.chatDetails.destinationURL, {}, JSON.stringify(newMessage));
                 console.warn("SENT to QUEUE");
+                let localModifiedArray = props.navigation.state.params.chatDetails.chatArray;
+                localModifiedArray.push(newMessage.data);
+                props.navigation.state.params.modifyChatFunction(localModifiedArray, props.navigation.state.params.chatIndex);
             }
             else if (props.navigation.state.params.chatDetails.ChatType=='GROUP'){
                 //sent to topic
