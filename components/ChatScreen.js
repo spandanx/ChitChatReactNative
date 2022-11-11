@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import {View, Text, Button, TextInput, StyleSheet} from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import {View, Text, Button, TextInput, StyleSheet, ScrollView} from 'react-native';
 import {over} from 'stompjs';
 import SockJS from 'sockjs-client';
 // var RNFS = require('react-native-fs');
@@ -7,11 +7,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {socketURL} from '../properties/networks';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import uuid from 'react-native-uuid';
+import {styles} from '../style/styles';
 
 
 var stompClient = null;
 
 export const ChatScreen = (props) => {
+
+    // const scrollViewRef = useRef();
 
     const [data, setData] = useState(
         [{
@@ -54,20 +57,50 @@ export const ChatScreen = (props) => {
     const [subscription, setSubscription] = useState({});
 
     useEffect(() => {
+        console.log(props);
+        if (props.navigation.isFocused()) {
+            console.warn("FOCUS CHANGED IN CHAT"+props.navigation.isFocused());
+        }
+      }, [props.navigation.isFocused()]);
+
+    useEffect(() => {
         if (props && props.navigation && props.navigation.state && props.navigation.state.params && props.navigation.state.params.currentUser && props.navigation.state.params.currentUUID){
             setUser(props.navigation.state.params.currentUser);
             setUuidUser(props.navigation.state.params.currentUUID);
+            // props.navigation.state.params.exitFunction
             // props.navigation.state.params.stompClient
             // console.log(uuidUser);
             // console.warn(props.navigation.state.params.chatDetails.displayName);
             // console.log(props);
             connect();
-            return () => {
-                // console.log("EXIT FROM CHATSCREEN");
-                unsubscribe();
-            };
+            // return () => {
+            //     console.log("EXIT FROM CHATSCREEN");
+            //     unsubscribe();
+            // };
         }
       }, [props]);
+
+    //   function handleBackButtonClick() {
+    //     navigation.goBack();
+    //     console.warn("CLICKED BACK");
+    //   }
+
+      useEffect(() => {
+        return () => {
+            console.warn("EXITING FROM []");
+            // props.navigation.state.params.exitFunction();
+        };
+      }, []);
+
+    //   useEffect(()=>{
+    //     console.warn("CHATARRAY CHANGE DETECTED");
+    //     console.warn(props.navigation.state.params.chatDetails.chatArray);
+    //   }, [props.navigation.state.params.chatDetails.chatArray]);
+
+    // useEffect(()=>{
+    //     console.warn("ALLCHAT changed ---------");
+    //     console.warn(props.navigation.state.params.allChat);
+    //   }, [props.navigation.state.params.allChat]);
 
     //   useEffect(() => {
         
@@ -201,6 +234,7 @@ export const ChatScreen = (props) => {
                     date: (new Date()).toString(),
                     chatRoomId: '',
                     type: 'MESSAGE',
+                    ChatType: props.navigation.state.params.chatDetails.ChatType,
                     status: 'SENT'
                 }
             }
@@ -224,28 +258,28 @@ export const ChatScreen = (props) => {
         }
     }
 
-    const sendPrivateMessage = (msg) => {
-        setText('');
-        // console.warn("sending the msg");
-        if (!props.navigation.state.params.currentUser){
-            console.warn('Username not set');
-        }
-        else if (!toUser){
-            console.warn('Destination User not set');
-        }
-        else{
-            let newMessage = {
-                source: props.navigation.state.params.currentUser,
-                destination: toUser,
-                message: msg,
-                date: (new Date()).toString(),
-                chatRoomId: '',
-                type: 'MESSAGE'
-            }
-            // console.warn(newMessage);
-            stompClient.send("/app/private-message", {}, JSON.stringify(newMessage));
-        }
-    }
+    // const sendPrivateMessage = (msg) => {
+    //     setText('');
+    //     // console.warn("sending the msg");
+    //     if (!props.navigation.state.params.currentUser){
+    //         console.warn('Username not set');
+    //     }
+    //     else if (!toUser){
+    //         console.warn('Destination User not set');
+    //     }
+    //     else{
+    //         let newMessage = {
+    //             source: props.navigation.state.params.currentUser,
+    //             destination: toUser,
+    //             message: msg,
+    //             date: (new Date()).toString(),
+    //             chatRoomId: '',
+    //             type: 'MESSAGE'
+    //         }
+    //         // console.warn(newMessage);
+    //         stompClient.send("/app/private-message", {}, JSON.stringify(newMessage));
+    //     }
+    // }
 
     const onConnectError = (error) => {
         console.error("ERROR");
@@ -308,14 +342,27 @@ export const ChatScreen = (props) => {
     const showChat = (item) => {
         return (
             item.sender && item.sender==user ? 
-                (<View style={{flex:1, flexDirection:'row', borderColor:'black', borderWidth:1}}>
+                // (<View style={{flex:1, flexDirection:'row', borderColor:'black', borderWidth:1}}>
+                //     <View style={{flex:2}}></View>
+                //     <View style={{flex:8, alignItems:'flex-end'}}>
+                //         <Text>{item.message}</Text>
+                //     </View>
+                // </View>)
+                // :
+                // (<View style={{flex:1, flexDirection:'row', borderColor:'black', borderWidth:1}}>
+                //     <View style={{flex:8, alignItems:'flex-start'}}>
+                //         <Text>{item.message}</Text>
+                //     </View>
+                //     <View style={{flex:2}}></View>
+                // </View>)
+                (<View style={{height: 50, flex:1, flexDirection:'row', borderColor:'black', borderBottomWidth:1, backgroundColor: '#E0E5FD', borderRadius: 3}}>
                     <View style={{flex:2}}></View>
                     <View style={{flex:8, alignItems:'flex-end'}}>
                         <Text>{item.message}</Text>
                     </View>
                 </View>)
                 :
-                (<View style={{flex:1, flexDirection:'row', borderColor:'black', borderWidth:1}}>
+                (<View style={{height: 50, flex:1, flexDirection:'row', borderColor:'black', borderBottomWidth:1, backgroundColor: '#E0E5FD', borderRadius: 3}}>
                     <View style={{flex:8, alignItems:'flex-start'}}>
                         <Text>{item.message}</Text>
                     </View>
@@ -341,8 +388,18 @@ export const ChatScreen = (props) => {
                 </Text>
             </View> */}
             <View style={{flex:12, backgroundColor:'white', flexDirection:'column'}}>
-                {
+                <ScrollView style={styles.scrollView}>
+                {/* {
                     props.navigation.state.params.chatDetails.chatArray.map((item)=>(
+                        showChat(item)
+                    ))
+                } */}
+                {/* {
+                    console.warn(props.navigation.state.params.chatDetails)
+                } */}
+                {
+                    // console.warn(props.navigation.state.params.chatDetails)
+                    props.navigation.state.params.chatDetails.chatArray.slice(0).reverse().map((item)=>(
                         showChat(item)
                     ))
                 }
@@ -371,7 +428,7 @@ export const ChatScreen = (props) => {
                     accessibilityLabel="Save"
                     />
                 } */}
-                
+                </ScrollView>
             </View>
             {/* <View style={{flex:1, flexDirection:'row'}}>
                 <TextInput
