@@ -11,6 +11,7 @@ import {phoneToIdUrlPath} from '../properties/networks';
 import Contacts from 'react-native-contacts';
 import {styles} from '../style/styles';
 import uuid from 'react-native-uuid';
+import OptionsMenu from "react-native-option-menu";
 
 
 var stompClient = null;
@@ -57,11 +58,15 @@ export const HomeScreen = (props) => {
     const [contactName, setContactName] = useState("");
     const [allContacts, setAllContacts] = useState([]);
     const [allValidContacts, setAllValidContacts] = useState(new Map());
+    const [phNoToContactMap, setPhNoToContactMap] = useState({});
     const [selectMap, setSelectMap] = useState(new Map());
     const [selectedContacts, setSelectedContacts] = useState({});
     const [connected, setConnected] = useState(false);
     const [allChat, setAllChat] = useState(new Map());
     const [openedChat, setOpenedChat] = useState("");
+    const [toBeEditGroup, setToBeEditGroup] = useState({});
+    const [groupNameToEdit, setGroupNameToEdit] = useState("");
+    const [editGroupModalVisible, setEditGroupModalVisible] = useState(false);
 
     useEffect(()=>{
         checkUserinStorage();
@@ -183,6 +188,22 @@ export const HomeScreen = (props) => {
         return truncatedtext;
     }
 
+    const  numberToContactTranslation = (number) => {
+        
+        if (number && number.length>0 && number[0]=='+'){
+            number = number.substring(1, number.length);
+        }
+        console.log("TRANSLATION");
+        console.log(phNoToContactMap);
+        console.log("NUMBER"+number);
+        if (number in phNoToContactMap){
+            return phNoToContactMap[number];
+        }
+        else {
+            return number;
+        }
+    }
+
     const subscribeToChatContact = async(contact) => {
         console.warn(contact.displayName);
         if (contact.ChatType=='PRIVATE'){
@@ -241,6 +262,13 @@ export const HomeScreen = (props) => {
                         else{
                             // setAllValidContacts(allValidContacts => [...allValidContacts, contact]);
                             setAllValidContacts(allValidContacts => ({ ...allValidContacts, [responseJson[0].id]: contact}));
+                        }
+
+                        if (Object.keys(phNoToContactMap).length==0){
+                            setPhNoToContactMap({[responseJson[0].phonenumber]: contact.displayName});
+                        }
+                        else{
+                            setPhNoToContactMap(phNoToContactMap => ({ ... phNoToContactMap, [responseJson[0].phonenumber]: contact.displayName}));
                         }
                         // validContacts.push(contact);
                         //----------
@@ -430,6 +458,18 @@ export const HomeScreen = (props) => {
                 // props.navigation.navigate('Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: chatContacts[chatUUIDIndex], stompClient: stompClient, modifyChatFunction: modifyChat});//, allChat: chatContacts, chatIndex: chatUUIDIndex
             }
         }
+        else if (incomingInfo.type=="GROUP_NAME_CHANGE"){
+            // {   type: "GROUP_NAME_CHANGE",
+            //     data:
+            //     {
+            //         groupUuid: toBeEditGroup.uuid,
+            //         propertyTitle: "displayName",
+            //         newName: groupNameToEdit,
+            //     }
+            // }
+            console.warn("Changing group name");
+            changeContactProperty(incomingInfo.data.groupUuid, incomingInfo.data.propertyTitle, incomingInfo.data.newName);
+        }
         else{
             console.warn("Other category");
         }
@@ -475,6 +515,7 @@ export const HomeScreen = (props) => {
         // console.log("PARAMS");
         // console.log(params);
         // let chatUUIDIndex = null;
+        params["contactTranslation"] = numberToContactTranslation;
         if (params.chatDetails.ChatType=="PRIVATE"){
             setOpenedChat("PRIVATE_"+params.chatDetails.uuid);
             console.warn("SELECTED CHAT INDEX "+"PRIVATE_"+params.chatDetails.uuid);
@@ -492,14 +533,148 @@ export const HomeScreen = (props) => {
     const showChat = (item, props, index) => {
         // , allChat: chatContacts, chatIndex: index
         return (
-            <Text onPress={()=>navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: item, stompClient: stompClient, modifyChatFunction: modifyChat, chatIndex: index})} key={item.uuid} style={{height: 50, flex:1, flexDirection:'row', borderColor:'black', borderBottomWidth:1, backgroundColor: '#E0E5FD', borderRadius: 3}}>
-                <View style={{flex:1}}></View>
-                <View style={{flex:20, alignItems:'flex-start'}}>
-                    <Text style={{fontWeight: "bold"}}>{item.displayName}</Text>
+            // <Text onPress={()=>navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: item, stompClient: stompClient, modifyChatFunction: modifyChat, chatIndex: index})} key={item.uuid} style={{height: 50, flex:1, borderColor:'black', borderBottomWidth:1, backgroundColor: '#E0E5FD', borderRadius: 3}}>
+
+            //     <View style={{flex:1, flexDirection:'row'}}>
+            //         <View style={{flex:1, justifyContent: 'flex-start', backgroundColor:"orange"}}>
+            //             <Text style={{fontWeight: "bold"}}>{item.displayName}</Text>
+            //         </View>
+            //         <View style={{flex:1, backgroundColor: "grey", justifyContent: 'flex-end'}}>
+            //             <MaterialIcons name="more-vert" size={20} backgroundColor="white" color={"black"}
+            //                 onPress={()=>console.warn("CLICKED ON BUTTON")} >
+            //             </MaterialIcons>
+            //         </View>
+            //     </View>
+            // </Text>
+            <View style={{flexDirection: 'row', height: 50, flex:1, borderColor:'black', borderBottomWidth:1, backgroundColor: '#E0E5FD', borderRadius: 3}} key={item.uuid}>
+                <View style={{flex: 1, flexDirection: 'row', justifyContent: 'space-between'}}>
+                    <Text onPress={()=>navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: item, stompClient: stompClient, modifyChatFunction: modifyChat, chatIndex: index})} style={{fontWeight: "bold"}}>{item.displayName}</Text>
+                    
+                    {
+                        item.ChatType=="GROUP" && 
+                        <OptionsMenu
+                            customButton={<MaterialIcons name="more-vert" size={20} backgroundColor="white" color={"black"}/>}
+                            destructiveIndex={1}
+                            options={["Edit Group Name", "Cancel"]}
+                            actions={[() => initiateEditGroupName(item)]}/>
+                    }
+                    {
+                        item.ChatType=="PRIVATE" && 
+                        <OptionsMenu
+                            customButton={<MaterialIcons name="more-vert" size={20} backgroundColor="white" color={"black"}/>}
+                            destructiveIndex={1}
+                            options={["No function yet"]}
+                            actions={[]}/>
+                    }
                 </View>
-                <View style={{flex:1}}></View>
-            </Text>
+            </View>
         );
+    }
+
+    const initiateEditGroupName = (contact) => {
+        // const [toBeEditGroup, setToBeEditGroup] = useState({});
+        // const [groupNameToEdit, setGroupNameToEdit] = useState("");
+        setToBeEditGroup(contact);
+        setGroupNameToEdit(contact.displayName);
+        setEditGroupModalVisible(true);
+        // console.warn("ALPHA");
+        // ...
+    }
+
+    const editGroupNameModal = (
+        <View style={{flex: 1, justifyContent: "center", alignItems: "center", marginTop: 22, flexDirection:'row'}}>
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={editGroupModalVisible}
+                onRequestClose={() => {
+                    // Alert.alert("Modal has been closed.");
+                    setEditGroupModalVisible(!editGroupModalVisible);
+                }}
+                >
+                <View style={styles.centeredView}>
+                    <View style={{
+                        // margin: 30,
+                        height: 250,
+                        backgroundColor: "white",
+                        borderRadius: 20,
+                        padding: 35,
+                        alignItems: "center",
+                        shadowColor: "#000",
+                        shadowOffset: {
+                          width: 0,
+                          height: 2
+                        },
+                        shadowOpacity: 0.25,
+                        shadowRadius: 4,
+                        elevation: 5
+                    }}>
+                        <Icon
+                            name="close"
+                            backgroundColor="blue"
+                            onPress={() => setEditGroupModalVisible(false)}
+                            style={{ borderRadius: 20, padding: 10, elevation: 2, backgroundColor: "white", alignSelf: 'flex-end', marginTop: -5, position: 'absolute'}}
+                            color='red'
+                            size={20}
+                            >
+                        </Icon>
+                        <Text style={styles.modalText}>
+                            <Text style={{flex:6, fontWeight: 'bold'}}>Edit Group Name</Text>
+                        </Text>
+                        <View style={{marginBottom: 10, height: 100}}>
+                            <TextInput
+                                onChangeText={setGroupNameToEdit}
+                                value={groupNameToEdit}
+                                placeholder="Group Name"
+                                style={{borderWidth: 1, borderRadius: 5, marginBottom: 20}}
+                            />
+                        </View>
+
+                        <View style={{marginBottom: 10, height: 50}}>
+                            <Button
+                                onPress={()=>brodcastGroupNameChange()}
+                                title="Rename"
+                                color="#29088A"
+                                accessibilityLabel="Rename"
+                                />
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+        </View>
+    );
+
+    const brodcastGroupNameChange = async() => {
+        // const [toBeEditGroup, setToBeEditGroup] = useState({});
+        // const [groupNameToEdit, setGroupNameToEdit] = useState("");
+        setEditGroupModalVisible(false);
+        changeContactProperty(toBeEditGroup.uuid, "displayName", groupNameToEdit);
+        let groupNameChangeMessage = 
+        {   type: "GROUP_NAME_CHANGE",
+            data:
+            {
+                groupUuid: toBeEditGroup.uuid,
+                propertyTitle: "displayName",
+                newName: groupNameToEdit,
+            }
+        }
+        stompClient.send("/app/message/"+toBeEditGroup.subscriptionURL, {}, JSON.stringify(groupNameChangeMessage));
+    }
+
+    const changeContactProperty = async(chatUUIDIndex, propertyTitle, propertyValue) => {
+        let prefix = "GROUP_";
+        let localChatContact = chatContacts;
+        console.warn("changeContactProperty");
+        console.warn(chatUUIDIndex+", "+propertyTitle+", "+propertyValue);
+        console.warn("ALL");
+        console.warn(chatContacts);
+        localChatContact[chatUUIDIndex][propertyTitle] = propertyValue;
+        setChatContacts(localChatContact);
+        storeChatInfo();
+        if (props.navigation.isFocused()===false && openedChat==(prefix+chatUUIDIndex)){
+            navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: chatContacts[chatUUIDIndex], stompClient: stompClient, modifyChatFunction: modifyChat, chatIndex: chatUUIDIndex});
+            // props.navigation.navigate('Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: chatContacts[chatUUIDIndex], stompClient: stompClient, modifyChatFunction: modifyChat});//, allChat: chatContacts, chatIndex: chatUUIDIndex
+        }
     }
 
     const emptySpace = (n) => {
@@ -617,8 +792,12 @@ export const HomeScreen = (props) => {
     }
 
     const processSingleContact = async(contact) => {
-        let contactNumber = contact.phoneNumbers[0].number;
+        let contactNumber = truncateSpaces(contact.phoneNumbers[0].number);
         let uuid = contact.userUUID;
+        // console.warn("processSingleContact");
+        // console.warn(contactNumber);
+        // console.warn(userContactNo);
+        // console.warn(contactNumber!=userContactNo);
         if (contactNumber!=userContactNo){
             //This Contact will be seen from the Sender's screen
             let newContact = {
@@ -862,26 +1041,7 @@ export const HomeScreen = (props) => {
                                     }
                                 </View>
                             </Text>
-                            {/* <View style={{flexDirection:'column'}}>
-                                <View style={{flex: 1}}>
-                                    <Button
-                                        onPress={()=>console.warn("")}
-                                        title="Create group"
-                                        color="blue"
-                                        accessibilityLabel="Create group"
-                                        />
-                                </View>
-                                <View style={{flex: 1}}>
-                                    <Button
-                                        onPress={()=>console.warn("")}
-                                        title="Create group"
-                                        color="blue"
-                                        accessibilityLabel="Create group"
-                                        />
-                                </View>
-                            </View> */}
                         </View>
-                        
                     </View>
                 </View>
             </Modal>
@@ -959,8 +1119,7 @@ export const HomeScreen = (props) => {
                             showChat(item, props)
                         )
                     } */}
-                    {console.log("chatContacts")}
-                    {console.log(chatContacts)}
+                    {editGroupNameModal}
                     {
                         Object.keys(chatContacts).map(function(key, index) {
                             // console.warn(index);

@@ -55,6 +55,7 @@ export const ChatScreen = (props) => {
     const [user, setUser] = useState("");
     const [uuidUser, setUuidUser] = useState("");
     const [subscription, setSubscription] = useState({});
+    const [groupName, setGroupname] = useState(props.navigation.state.params.chatDetails.displayName);
 
     useEffect(() => {
         console.log(props);
@@ -85,12 +86,19 @@ export const ChatScreen = (props) => {
     //     console.warn("CLICKED BACK");
     //   }
 
-      useEffect(() => {
-        return () => {
-            console.warn("EXITING FROM []");
-            // props.navigation.state.params.exitFunction();
-        };
-      }, []);
+    //   useEffect(() => {
+        // console.warn("NAVIGATION");
+        // console.warn(props.navigation);
+        // props.navigation.setParams({
+        //     headerRight: () => (
+        //       <Button onPress={() => console.warn("CLICKED HEADER ----")} title="Update count" />
+        //     ),
+        // });
+        // props.navigation.goBack();
+        // return () => {
+        //     console.warn("EXITING FROM []");
+        // };
+    //   }, []);
 
     //   useEffect(()=>{
     //     console.warn("CHATARRAY CHANGE DETECTED");
@@ -341,6 +349,11 @@ export const ChatScreen = (props) => {
         }
         return array;
     }
+    const triggerTranslation = (contact) => {
+        console.log("CONTACT CHAT - ");
+        console.log(contact.senderContactNo);
+        return props.navigation.state.params.contactTranslation(contact.senderContactNo);
+    }
 
     const showChat = (item) => {
         return (
@@ -370,7 +383,7 @@ export const ChatScreen = (props) => {
                 :
                 (<View style={{height: 80, flex:1, flexDirection:'row', borderColor:'black', borderBottomWidth:1, backgroundColor: '#E0E5FD', borderRadius: 3}}>
                     <View style={{flex:8, alignItems:'flex-start'}}>
-                        <Text style={{fontWeight: 'bold', color:'blue'}}>{item.senderContactNo}</Text>
+                        <Text style={{fontWeight: 'bold', color:'blue'}}>{triggerTranslation(item)}</Text>
                         <Text style={{marginLeft:5}}>{item.message}</Text>
                     </View>
                     <View style={{flex:2}}></View>

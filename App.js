@@ -16,6 +16,7 @@ import {
   Text,
   useColorScheme,
   View,
+  Button
 } from 'react-native';
 
 import {
@@ -29,6 +30,7 @@ import {
 import { HomeScreen } from './components/HomeScreen';
 import {ChatScreen} from './components/ChatScreen';
 import { LoginScreen } from './components/LoginScreen';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 import { createStackNavigator } from 'react-navigation-stack';
 import { createAppContainer } from 'react-navigation';
@@ -130,12 +132,18 @@ const RootStack = createStackNavigator({
   },
   Chat: {
     screen: ChatScreen,
+    
     navigationOptions: ({ navigation }) => ({
       title: `${navigation.state.params.chatDetails.displayName}`,
       headerStyle: {
         backgroundColor: '#29088A',
       },
-      headerTintColor: 'white'
+      headerTintColor: 'white',
+      // headerRight: () => (
+      //   <MaterialIcons name="close" size={30} backgroundColor="white" color={"white"}
+      //         onPress={()=>console.warn("CLICKED HEADER BUTTON")} >
+      //   </MaterialIcons>
+      // )
     })
   }
 });
