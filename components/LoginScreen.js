@@ -150,6 +150,7 @@ export const LoginScreen = (props) => {
         storeUserinStorage('__USERNAME__', userId);
         storeUserinStorage('__UUID__', newUUID);
         storeUserinStorage('__CONTACTNO__', phoneNo);
+        storeUserinStorage('__CHATINFO__', JSON.stringify({}));
     }
 
     const clickUserSet = (userId) => {

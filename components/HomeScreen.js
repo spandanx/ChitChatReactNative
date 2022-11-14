@@ -298,16 +298,16 @@ export const HomeScreen = (props) => {
         console.log("FILTER DONE");
     }
 
-    const storeChatInfo = async(allcontacts) => {
-        try {
-            console.log("STORING------");
-            console.log();
-            await AsyncStorage.setItem("__CHATINFO__", JSON.stringify(allcontacts));
-            console.log("Stored info");
-          } catch (e) {
-            console.log(e);
-          }
-    }
+    // const storeChatInfo = async(allcontacts) => {
+    //     try {
+    //         console.log("STORING------");
+    //         console.log();
+    //         await AsyncStorage.setItem("__CHATINFO__", JSON.stringify(allcontacts));
+    //         console.log("Stored info");
+    //       } catch (e) {
+    //         console.log(e);
+    //       }
+    // }
 
     const modifyChat = async(modifiedArray, chatIndex) => {
         console.log("MODIFY CALLED");
@@ -333,8 +333,9 @@ export const HomeScreen = (props) => {
                 // console.log(localChatContact[chatIndex].chatArray);
                 // console.log("FULL");
                 // console.log(localChatContact);
+                setInStorage('__CHATINFO__', localChatContact);
                 setChatContacts(localChatContact);
-                storeChatInfo(localChatContact);
+                // storeChatInfo(localChatContact);
                 // console.log("EXPECTED CHAT INDEX "+chatUUIDIndex);
                 // console.log("OPENED CHAT INDEX "+openedChat);
                 // console.log(openedChat);
@@ -415,42 +416,70 @@ export const HomeScreen = (props) => {
         if (incomingInfo.type=="PRIVATE_CHAT_INTRO"){
             console.log("Extending");
 
-            // incomingInfo.data["chatArray"] = [];
-
             let contactUUID = incomingInfo.data.uuid;
-            if (Object.keys(chatContacts).length==0){
-                setChatContacts({[contactUUID] : incomingInfo.data});
+
+            let chatInfo = await AsyncStorage.getItem('__CHATINFO__');
+            if (chatInfo!=null){
+                let localChatContact = JSON.parse(chatInfo);
+                let modifiedChatContacts = {};
+
+                if (!contactUUID in localChatContact){
+                    subscribeToChatContact(incomingInfo.data);
+                }
+
+                if (Object.keys(localChatContact).length==0){
+                    modifiedChatContacts = {[contactUUID] : incomingInfo.data};
+                }
+                else{
+                    modifiedChatContacts = { ...localChatContact, [contactUUID]: incomingInfo.data};
+                }
+                // console.log(incomingInfo.data);
+                //queue subscription
+                // checkAndSubscribe(incomingInfo.data.subscriptionURL, onMessageReceived, {});
+                setInStorage('__CHATINFO__', modifiedChatContacts);
+                setAllContacts(modifiedChatContacts);
+                
+                //subscribe only if it is a new contact
+
             }
             else{
-                setChatContacts(chatContacts => ({ ...chatContacts, [contactUUID]: incomingInfo.data}));
+                console.warn("__CHATINFO__ NOT FOUND");
             }
-            console.log(incomingInfo.data);
-            //queue subscription
-            // checkAndSubscribe(incomingInfo.data.subscriptionURL, onMessageReceived, {});
             
-            //subscribe only if it is a new contact
-            if (!contactUUID in chatContacts){
-                subscribeToChatContact(incomingInfo.data);
-            }
             
         }
         else if (incomingInfo.type=="GROUP_CHAT_INTRO"){
             // incomingInfo.data["chatArray"] = [];
             let contactUUID = incomingInfo.data.uuid;
-            if (Object.keys(chatContacts).length==0){
-                setChatContacts({[contactUUID] : incomingInfo.data});
+
+            let chatInfo = await AsyncStorage.getItem('__CHATINFO__');
+            if (chatInfo!=null){
+                let localChatContact = JSON.parse(chatInfo);
+
+                //subscribe only if it is a new contact
+                if (!contactUUID in localChatContact){
+                    subscribeToChatContact(incomingInfo.data);
+                }
+
+                let modifiedChatContacts = {};
+
+                if (Object.keys(localChatContact).length==0){
+                    modifiedChatContacts = {[contactUUID] : incomingInfo.data};
+                }
+                else{
+                    modifiedChatContacts = { ...localChatContact, [contactUUID]: incomingInfo.data};
+                }
+
+                setInStorage('__CHATINFO__', modifiedChatContacts);
+                setAllContacts(modifiedChatContacts);
+                //topic durable subscription
+                // checkAndSubscribe(incomingInfo.data.subscriptionURL, onMessageReceived, {"id":uuidUser, "durable":true, "auto-delete":false});
+    
+                
             }
             else{
-                setChatContacts(chatContacts => ({ ...chatContacts, [contactUUID]: incomingInfo.data}));
+                console.warn("__CHATINFO__ NOT FOUND");
             }
-            //topic durable subscription
-            // checkAndSubscribe(incomingInfo.data.subscriptionURL, onMessageReceived, {"id":uuidUser, "durable":true, "auto-delete":false});
-
-            //subscribe only if it is a new contact
-            if (!contactUUID in chatContacts){
-                subscribeToChatContact(incomingInfo.data);
-            }
-            
         }
         else if (incomingInfo.type=="SEND_MESSAGE"){
             console.warn("MESSAGE AT SEND_MESSAGE");
@@ -488,7 +517,8 @@ export const HomeScreen = (props) => {
                 // console.log("FULL");
                 // console.log(localChatContact);
                 setChatContacts(localChatContact);
-                storeChatInfo(localChatContact);
+                setInStorage('__CHATINFO__', localChatContact);
+                // storeChatInfo(localChatContact);
                 console.log("EXPECTED CHAT INDEX "+(chatUUIDIndex));
 
                 let openChatInfo = await AsyncStorage.getItem('__SELECTEDCHAT__');
@@ -497,6 +527,7 @@ export const HomeScreen = (props) => {
                     let openedChatStorage = JSON.parse(openChatInfo);
                     
                     console.log("OPENED CHAT INDEX "+openedChatStorage);
+                    console.log("REQUIRED CHAT INDEX "+chatUUIDIndex);
                     console.log("ISFOCUSED");
                     console.log(props.navigation.isFocused());
                     if (props.navigation.isFocused()===false && openedChatStorage==chatUUIDIndex){
@@ -572,7 +603,7 @@ export const HomeScreen = (props) => {
           
     }
 
-    const setSelectedChatInStorage = async(key, value) => {
+    const setInStorage = async(key, value) => {
         try {
             console.log("STORING------");
             console.log();
@@ -589,7 +620,7 @@ export const HomeScreen = (props) => {
         // let chatUUIDIndex = null;
         params["contactTranslation"] = numberToContactTranslation;
         if (params.chatDetails.ChatType=="PRIVATE"){
-            setSelectedChatInStorage("__SELECTEDCHAT__", params.chatDetails.uuid);
+            setInStorage("__SELECTEDCHAT__", params.chatDetails.uuid);
             // setOpenedChat(params.chatDetails.uuid);
             console.log("SELECTED CHAT INDEX "+params.chatDetails.uuid);
             // console.log("IS IT SET? "+ openedChat);
@@ -598,6 +629,7 @@ export const HomeScreen = (props) => {
             // chatUUIDIndex = params.chatDetails.senderUUID;
         }
         else{
+            setInStorage("__SELECTEDCHAT__", params.chatDetails.uuid);
             setOpenedChat(params.chatDetails.uuid);
             console.log("SELECTED CHAT INDEX "+params.chatDetails.uuid);
             // chatUUIDIndex = params.chatDetails.chatUUID;
@@ -739,18 +771,25 @@ export const HomeScreen = (props) => {
 
     const changeContactProperty = async(chatUUIDIndex, propertyTitle, propertyValue) => {
         // let prefix = "GROUP_";
-        let localChatContact = chatContacts;
-        console.log("changeContactProperty");
-        console.log(chatUUIDIndex+", "+propertyTitle+", "+propertyValue);
-        console.log("ALL");
-        console.log(chatContacts);
-        localChatContact[chatUUIDIndex][propertyTitle] = propertyValue;
-        setChatContacts(localChatContact);
-        storeChatInfo(localChatContact);
-        if (props.navigation.isFocused()===false && openedChat==(chatUUIDIndex)){
-            navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: getUserContactNo(), chatDetails: chatContacts[chatUUIDIndex], stompClient: stompClient, modifyChatFunction: modifyChat, chatIndex: chatUUIDIndex});
-            // props.navigation.navigate('Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: chatContacts[chatUUIDIndex], stompClient: stompClient, modifyChatFunction: modifyChat});//, allChat: chatContacts, chatIndex: chatUUIDIndex
-        }
+
+        let chatInfo = await AsyncStorage.getItem('__CHATINFO__');
+            if (chatInfo!=null){
+                let localChatContact = JSON.parse(chatInfo);
+                console.log("changeContactProperty");
+                console.log(chatUUIDIndex+", "+propertyTitle+", "+propertyValue);
+                console.log("ALL");
+                // console.log(chatContacts);
+                localChatContact[chatUUIDIndex][propertyTitle] = propertyValue;
+                setChatContacts(localChatContact);
+                setInStorage('__CHATINFO__', localChatContact);
+                // storeChatInfo(localChatContact);
+                //#########################... MODIFICATION NEEDED
+                if (props.navigation.isFocused()===false && openedChat==(chatUUIDIndex)){
+                    navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: getUserContactNo(), chatDetails: localChatContact[chatUUIDIndex], stompClient: stompClient, modifyChatFunction: modifyChat, chatIndex: chatUUIDIndex});
+                    // props.navigation.navigate('Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: chatContacts[chatUUIDIndex], stompClient: stompClient, modifyChatFunction: modifyChat});//, allChat: chatContacts, chatIndex: chatUUIDIndex
+                }
+            }
+        // let localChatContact = chatContacts;...
     }
 
     const emptySpace = (n) => {
@@ -886,7 +925,7 @@ export const HomeScreen = (props) => {
                 senderUuid: uuidUser,
                 destinationURL: uuid+'_'+uuidUser,
                 subscriptionURL: uuidUser+'_'+uuid,
-                "chatArray": []
+                chatArray: []
             }
             // console.log("NewContact");
             // console.log(newContact);
@@ -904,7 +943,7 @@ export const HomeScreen = (props) => {
                     uuid: uuidUser,
                     destinationURL: uuidUser+'_'+uuid,
                     subscriptionURL: uuid+'_'+uuidUser,
-                    "chatArray": []
+                    chatArray: []
                 }
             }
             
@@ -914,28 +953,43 @@ export const HomeScreen = (props) => {
             //subscribing to the chat
             //Adding the new contact to the sender's home screen.
             console.log("BEFORE ADDING NEW CONTACT");
-            console.log(chatContacts);
-            console.log("UUID value - "+uuid);
-            if (Object.keys(chatContacts).length==0){
-                console.log("000000");
-                setChatContacts({[uuid] : newContact});
+            // console.log(chatContacts);
+            let chatInfo = await AsyncStorage.getItem('__CHATINFO__');
+            if (chatInfo!=null){
+                console.log("FETCHED ALL CHAT");
+                let localChatContact = JSON.parse(chatInfo);
+
+                if (!uuid in localChatContact){
+                    checkAndSubscribe('/queue/'+newContact.subscriptionURL, onMessageReceived, {"id":newContact.subscriptionURL+"_"+uuidUser});
+                }
+
+                let modifiedChatContacts = {};
+
+                console.log("UUID value - "+uuid);
+                if (Object.keys(localChatContact).length==0){
+                    // console.log("000000");
+                    modifiedChatContacts = {[uuid] : newContact};
+                }
+                else{
+                    // console.log("11111111111111");
+                    modifiedChatContacts = { ...localChatContact, [uuid]: newContact};
+                    // console.log("chatContacts");
+                    // console.log(chatContacts);
+                }
+
+                setInStorage("__CHATINFO__", modifiedChatContacts);
+                setChatContacts(modifiedChatContacts);
+                console.log("AFTER ADDING NEW CONTACT");
+                // console.log(chatContacts);
+                //######### UNCOMMENT
+                // queue subscription to be done in the chat itself
+                navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: getUserContactNo(), chatDetails: newContact, stompClient: stompClient, modifyChatFunction: modifyChat, chatIndex: uuid});
+                // props.navigation.navigate('Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: newContact, stompClient: stompClient, modifyChatFunction: modifyChat});//, allChat: chatContacts, chatIndex: uuid
+                //######### UNCOMMENT
             }
             else{
-                console.log("11111111111111");
-                setChatContacts(chatContacts => ({ ...chatContacts, [uuid]: newContact}));
-                // console.log("chatContacts");
-                // console.log(chatContacts);
+                console.warn("__CHATINFO__ NOT FOUND");   
             }
-            console.log("AFTER ADDING NEW CONTACT");
-            console.log(chatContacts);
-            //######### UNCOMMENT
-            // queue subscription to be done in the chat itself
-            if (!uuid in chatContacts){
-                checkAndSubscribe('/queue/'+newContact.subscriptionURL, onMessageReceived, {"id":newContact.subscriptionURL+"_"+uuidUser});
-            }
-            navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: getUserContactNo(), chatDetails: newContact, stompClient: stompClient, modifyChatFunction: modifyChat, chatIndex: uuid});
-            // props.navigation.navigate('Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: newContact, stompClient: stompClient, modifyChatFunction: modifyChat});//, allChat: chatContacts, chatIndex: uuid
-            //######### UNCOMMENT
         }
         else{
             console.log("You cannot chat with yourself, please use a different contact number");
@@ -993,21 +1047,35 @@ export const HomeScreen = (props) => {
             }
         }
         //Adding the new contact to the sender's home screen.
-        if (Object.keys(chatContacts).length==0){
-            setChatContacts({[groupUUID] : newContact});
-        }
-        else{
-            setChatContacts(chatContacts => ({ ...chatContacts, [groupUUID]: newContact}));
-        }
-        //######### UNCOMMENT
-        // topic subscription
-        checkAndSubscribe('/topic/'+newContact.subscriptionURL, onMessageReceived, {"id":newContact.subscriptionURL+"_"+uuidUser, "durable":true, "auto-delete":false});
+
+        let chatInfo = await AsyncStorage.getItem('__CHATINFO__');
+            if (chatInfo!=null){
+                let localChatContact = JSON.parse(chatInfo);
+                let modifiedChatContacts = {};
+                
+                if (Object.keys(localChatContact).length==0){
+                    modifiedChatContacts = {[groupUUID] : newContact};
+                }
+                else{
+                    modifiedChatContacts = { ...localChatContact, [groupUUID]: newContact};
+                }
+                //######### UNCOMMENT
+                // topic subscription
+                setInStorage('__CHATINFO__', modifiedChatContacts);
+                setAllContacts(modifiedChatContacts);
+
+                checkAndSubscribe('/topic/'+newContact.subscriptionURL, onMessageReceived, {"id":newContact.subscriptionURL+"_"+uuidUser, "durable":true, "auto-delete":false});
+                
+                navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: getUserContactNo(), chatDetails: newContact, stompClient: stompClient, modifyChatFunction: modifyChat, chatIndex: groupUUID});
         
-        navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: getUserContactNo(), chatDetails: newContact, stompClient: stompClient, modifyChatFunction: modifyChat, chatIndex: groupUUID});
+        
+                // props.navigation.navigate('Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: newContact, stompClient: stompClient, modifyChatFunction: modifyChat});
+                // ######### UNCOMMENT
 
-
-        // props.navigation.navigate('Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: newContact, stompClient: stompClient, modifyChatFunction: modifyChat});
-        // ######### UNCOMMENT
+            }
+            else{
+                console.warn("__CHATINFO__ not found");
+            }
     }
 
     const goToChat = async() => {
