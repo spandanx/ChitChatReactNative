@@ -75,7 +75,7 @@ export const HomeScreen = (props) => {
         getContacts();
 
         // return () => {
-        //     console.warn("EXIT FROM []");
+        //     console.log("EXIT FROM []");
         // }
     }, []);
 
@@ -84,16 +84,16 @@ export const HomeScreen = (props) => {
             connect();
         }
         // return () => {
-        //     console.warn("EXIT FROM uuidUser");
+        //     console.log("EXIT FROM uuidUser");
         // }
     }, [uuidUser]);
 
     // useEffect(() => {
-    //     console.warn("ON FOCUS************************");
+    //     console.log("ON FOCUS************************");
  
     //     // Call only when screen open or when back on screen 
     //     if(isFocused){ 
-    //         console.warn("ON FOCUS IF ************************"); 
+    //         console.log("ON FOCUS IF ************************"); 
             
     //     }
     // }, [isFocused]);
@@ -103,17 +103,17 @@ export const HomeScreen = (props) => {
     //         loopSubscribe(chatContacts);
     //     }
     //     // if (stompClient!=null){
-    //     //     console.warn("STOMP CLIENT ------ "+stompClient);
+    //     //     console.log("STOMP CLIENT ------ "+stompClient);
     //     // }
     //     // if (Object.keys(chatContacts).length > 0){
-    //     //     console.warn("chatContacts ------ ");
-    //     //     console.warn(chatContacts);
+    //     //     console.log("chatContacts ------ ");
+    //     //     console.log(chatContacts);
     //     // }
     // }, [connected, chatContacts]);
 
     useEffect(()=>{
         if (props.navigation.state && props.navigation.state.params && props.navigation.state.params.currentUser!='' && props.navigation.state.params.currentUUID!='' && props.navigation.state.params.userContactNo!=''){
-            console.warn("SETTING ALL ************************");
+            console.log("SETTING ALL ************************");
             setUser(props.navigation.state.params.currentUser);
             setUuidUser(props.navigation.state.params.currentUUID);
             setUserContactNo(props.navigation.state.params.userContactNo);
@@ -123,21 +123,21 @@ export const HomeScreen = (props) => {
             fetchChatInfo();
             getContacts();
         }
-        console.warn("PROPS CHANGED");
-        console.warn((props.navigation.state!=undefined) + ", "+(props.navigation.state.params!=undefined)+", "+(props.navigation.state && props.navigation.state.params && props.navigation.state.params.currentUser!='')+", "+(props.navigation.state && props.navigation.state.params && props.navigation.state.params.currentUUID!='')+", "+(props.navigation.state && props.navigation.state.params && props.navigation.state.params.userContactNo!=''));
-        console.warn(props);
+        console.log("PROPS CHANGED");
+        console.log((props.navigation.state!=undefined) + ", "+(props.navigation.state.params!=undefined)+", "+(props.navigation.state && props.navigation.state.params && props.navigation.state.params.currentUser!='')+", "+(props.navigation.state && props.navigation.state.params && props.navigation.state.params.currentUUID!='')+", "+(props.navigation.state && props.navigation.state.params && props.navigation.state.params.userContactNo!=''));
+        // console.log(props);
         // return () => {
-        //     console.warn("EXIT FROM props");
+        //     console.log("EXIT FROM props");
         // }
     }, [props.navigation.state.params?.currentUser, props.navigation.state.params?.currentUUID, props.navigation.state.params?.userContactNo]);
 
-    useEffect(()=>{
-        storeChatInfo();
+    // useEffect(()=>{
+    //     storeChatInfo();
 
-        // return () => {
-        //     console.warn("EXIT FROM chatContacts");
-        // }
-    }, [chatContacts]);
+    //     // return () => {
+    //     //     console.log("EXIT FROM chatContacts");
+    //     // }
+    // }, [chatContacts]);
 
     // useEffect(()=>{
     //     filterValidContacts();
@@ -145,11 +145,26 @@ export const HomeScreen = (props) => {
 
     // useEffect(() => {
     //     if (props.navigation.isFocused()) {
-    //         console.warn("FOCUS CHANGED IN HOME"+props.navigation.isFocused());
+    //         console.log("FOCUS CHANGED IN HOME"+props.navigation.isFocused());
     //         setOpenedChat("");
-    //         console.warn("Changed Opened Chat value: "+openedChat);
+    //         console.log("Changed Opened Chat value: "+openedChat);
     //     }
     //   }, [props.navigation.isFocused()]);
+
+    const checkAndSubscribe = async(destination, callback, params) => {
+        console.log("checkAndSubscribe");
+        if (!stompClient){
+            console.warn("Stompcliet does not esist!");
+            return;
+        }
+        if (params.id in stompClient.subscriptions){
+            console.warn("Subscription already exists");
+        }
+        else{
+            stompClient.subscribe(destination, callback, params);//{"id":uuidUser, "durable":true, "auto-delete":false}
+            console.log("SUBSCRIBED");
+        }
+    }
 
     const getCurrentUUID = () => {
         if (props.navigation.state && props.navigation.state.params && props.navigation.state.params.currentUUID!=''){
@@ -189,15 +204,15 @@ export const HomeScreen = (props) => {
     }
 
     const  numberToContactTranslation = (number) => {
-        
-        if (number && number.length>0 && number[0]=='+'){
-            number = number.substring(1, number.length);
+        let tempnumber = number;
+        if (tempnumber && tempnumber.length>0 && tempnumber[0]=='+'){
+            tempnumber = number.substring(1, number.length);
         }
-        console.log("TRANSLATION");
-        console.log(phNoToContactMap);
-        console.log("NUMBER"+number);
-        if (number in phNoToContactMap){
-            return phNoToContactMap[number];
+        // console.log("TRANSLATION");
+        // console.log(phNoToContactMap);
+        // console.log("NUMBER"+number);
+        if (tempnumber in phNoToContactMap){
+            return phNoToContactMap[tempnumber];
         }
         else {
             return number;
@@ -205,23 +220,23 @@ export const HomeScreen = (props) => {
     }
 
     const subscribeToChatContact = async(contact) => {
-        console.warn(contact.displayName);
+        console.log(contact.displayName);
         if (contact.ChatType=='PRIVATE'){
             //queue subscription
-            stompClient.subscribe('/queue/'+contact.subscriptionURL, onMessageReceived, {"id":uuidUser+"_"+contact.uuid});//{"id":1234, "durable":true, "auto-delete":false}
-            console.warn("SUBSCRIBED to QUEUE"+contact.displayName);
+            checkAndSubscribe('/queue/'+contact.subscriptionURL, onMessageReceived, {"id":contact.subscriptionURL+"_"+uuidUser});//{"id":1234, "durable":true, "auto-delete":false}
+            console.log("SUBSCRIBED to QUEUE"+contact.displayName);
         }
         else if (contact.ChatType=='GROUP'){
-            stompClient.subscribe('/topic/'+contact.subscriptionURL, onMessageReceived, {"id":uuidUser+"_"+contact.uuid, "durable":true, "auto-delete":false});//{"id":1234, "durable":true, "auto-delete":false}
-            console.warn("SUBSCRIBED to TOPIC"+contact.displayName);
+            checkAndSubscribe('/topic/'+contact.subscriptionURL, onMessageReceived, {"id":contact.subscriptionURL+"_"+uuidUser, "durable":true, "auto-delete":false});//{"id":1234, "durable":true, "auto-delete":false}
+            console.log("SUBSCRIBED to TOPIC"+contact.displayName);
         }
         else{
-            console.warn("WRONG CHAT TYPE");
+            console.log("WRONG CHAT TYPE");
         }
     }
 
     const loopSubscribe = async(contacts) => {
-        console.warn("LOOP ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
+        console.log("LOOP ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
         Object.keys(contacts).map(function(key, index) {
             subscribeToChatContact(contacts[key]);
           })
@@ -247,14 +262,14 @@ export const HomeScreen = (props) => {
                 .then((response) => response.json())
                 .then((responseJson) => {
                     if (responseJson.length==0){
-                        console.warn("Contact number does not exist "+ url);
+                        console.log("Contact number does not exist "+ url);
                     }
                     else{
-                        // console.warn(contact);
+                        // console.log(contact);
                         contact['userUUID'] = responseJson[0].id;
                         contact['truncatedPhoneNo'] = responseJson[0].phonenumber;
-                        // console.warn(contact);
-                        // console.warn(responseJson);
+                        // console.log(contact);
+                        // console.log(responseJson);
                         if (allValidContacts.length==0){
                             // setAllValidContacts([contact]);
                             setAllValidContacts({[responseJson[0].id] : contact});
@@ -275,49 +290,64 @@ export const HomeScreen = (props) => {
                     }
                     
                 })
-                .catch((err) => console.warn(err));
+                .catch((err) => console.log(err));
             }
             
         };
         // setAllValidContacts(validContacts);
-        console.warn("FILTER DONE");
+        console.log("FILTER DONE");
     }
 
-    const storeChatInfo = async() => {
+    const storeChatInfo = async(allcontacts) => {
         try {
-            console.warn("STORING------");
-            console.log(chatContacts);
-            await AsyncStorage.setItem("__CHATINFO__", JSON.stringify(chatContacts));
-            console.warn("Stored info");
+            console.log("STORING------");
+            console.log();
+            await AsyncStorage.setItem("__CHATINFO__", JSON.stringify(allcontacts));
+            console.log("Stored info");
           } catch (e) {
-            console.warn(e);
+            console.log(e);
           }
     }
 
     const modifyChat = async(modifiedArray, chatIndex) => {
-        console.warn("MODIFY CALLED");
-        console.warn(modifiedArray);
+        console.log("MODIFY CALLED");
+        // console.log(modifiedArray);
 
-        let localChatContact = chatContacts;
+        // let localChatContact = chatContacts;
         // let destinationContact = localChatContact[chatIndex];
         // let previousChatArray = destinationContact.chatArray;
-        // console.warn(previousChatArray);
-        // console.warn("MODIFICATION");
+        console.log("INDEX: "+chatIndex);
+        // console.log("ALL");
+        // console.log(chatContacts);
         // previousChatArray.push(newChat);
-        // console.warn(previousChatArray);
-        localChatContact[chatIndex].chatArray = modifiedArray;
-        // console.warn("FULL");
-        // console.warn(localChatContact);
-        setChatContacts(localChatContact);
-        storeChatInfo();
-        // console.warn("EXPECTED CHAT INDEX "+chatUUIDIndex);
-        // console.warn("OPENED CHAT INDEX "+openedChat);
-        // console.warn(openedChat);
-        // console.warn("ISFOCUSED");
-        // console.warn(props.navigation.isFocused());
-        // if (props.navigation.isFocused()===false && openedChat==chatUUIDIndex){
-        navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: chatContacts[chatIndex], stompClient: stompClient, modifyChatFunction: modifyChat, chatIndex: chatIndex});
+
+        let chatInfo = await AsyncStorage.getItem('__CHATINFO__');
+            if (chatInfo!=null){
+                console.log("FETCHED ALL CHAT");
+                let localChatContact = JSON.parse(chatInfo);
+
+                // console.log("BEFORE MOD");
+                // console.log(localChatContact[chatIndex].chatArray);
+                localChatContact[chatIndex].chatArray = modifiedArray;
+                // console.log("AFTER MOD");
+                // console.log(localChatContact[chatIndex].chatArray);
+                // console.log("FULL");
+                // console.log(localChatContact);
+                setChatContacts(localChatContact);
+                storeChatInfo(localChatContact);
+                // console.log("EXPECTED CHAT INDEX "+chatUUIDIndex);
+                // console.log("OPENED CHAT INDEX "+openedChat);
+                // console.log(openedChat);
+                // console.log("ISFOCUSED");
+                // console.log(props.navigation.isFocused());
+                // if (props.navigation.isFocused()===false && openedChat==chatUUIDIndex){
+                // console.warn("chatContacts[chatUUIDIndex]");
+                // console.warn(chatContacts[chatIndex]);
+                // console.warn("localChatContact");
+                // console.warn(localChatContact);
+                navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: getUserContactNo(), chatDetails: localChatContact[chatIndex], stompClient: stompClient, modifyChatFunction: modifyChat, chatIndex: chatIndex});
             // props.navigation.navigate('Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: chatContacts[chatUUIDIndex], stompClient: stompClient, modifyChatFunction: modifyChat});//, allChat: chatContacts, chatIndex: chatUUIDIndex
+            }
         // }
 
     }
@@ -326,16 +356,16 @@ export const HomeScreen = (props) => {
         try {
             let chatInfo = await AsyncStorage.getItem('__CHATINFO__');
             if (chatInfo!=null){
-                console.warn("FETCHED ALL CHAT");
+                console.log("FETCHED ALL CHAT");
                 setChatContacts(JSON.parse(chatInfo));
-                console.warn(chatInfo);
+                console.log(chatInfo);
             }
             else{
-                console.warn("Could not find userName");
+                console.log("Could not find userName");
                 props.navigation.navigate('Login');
             }
           } catch (e) {
-            console.warn(e);
+            console.log(e);
           }
     }
 
@@ -347,7 +377,7 @@ export const HomeScreen = (props) => {
     }
 
     const onConnected = async() => {
-        console.warn("Connected");
+        console.log("Connected");
         // setConnected(true);
         // await delay(2000);
         subcribeToInfoQueue();
@@ -360,13 +390,13 @@ export const HomeScreen = (props) => {
     }
 
     const subcribeToInfoQueue = async() => {
-        // console.warn("SUBSCRIBING to "+'/queue/__self__'+uuidUser);
+        // console.log("SUBSCRIBING to "+'/queue/__self__'+uuidUser);
         let uuidUser = getCurrentUUID();
         if (uuidUser!=''){
-            stompClient.subscribe('/queue/__self__'+uuidUser, onMessageReceived, {"id":uuidUser});//{"id":uuidUser, "durable":true, "auto-delete":false}
-            console.warn("SUBSCRIBED to "+'/queue/__self__'+uuidUser);
-            console.warn("SUBSCRIPTIONS");
-            console.warn(stompClient.subscriptions);
+            checkAndSubscribe('/queue/__self__'+uuidUser, onMessageReceived, {"id":"__self__"+uuidUser});//{"id":uuidUser, "durable":true, "auto-delete":false}
+            console.log("SUBSCRIBED to "+'/queue/__self__'+uuidUser);
+            console.log("SUBSCRIPTIONS");
+            console.log(stompClient.subscriptions);
         }
     }
 
@@ -375,13 +405,15 @@ export const HomeScreen = (props) => {
     // }
 
     const onMessageReceived = async(msg) => {
-        console.warn("INFO Messages recieved----");
-        console.warn("BEFORE receiving");
-        console.warn(msg);
+        console.warn("Messages recieved----");
+        console.log("BEFORE receiving");
+        console.log(msg);
         let incomingInfo = JSON.parse(msg.body);
+        // console.log("BEFORE");
+        // console.log(chatContacts);
 
         if (incomingInfo.type=="PRIVATE_CHAT_INTRO"){
-            console.warn("Extending");
+            console.log("Extending");
 
             // incomingInfo.data["chatArray"] = [];
 
@@ -392,9 +424,9 @@ export const HomeScreen = (props) => {
             else{
                 setChatContacts(chatContacts => ({ ...chatContacts, [contactUUID]: incomingInfo.data}));
             }
-            console.warn(incomingInfo.data);
+            console.log(incomingInfo.data);
             //queue subscription
-            // stompClient.subscribe(incomingInfo.data.subscriptionURL, onMessageReceived, {});
+            // checkAndSubscribe(incomingInfo.data.subscriptionURL, onMessageReceived, {});
             
             //subscribe only if it is a new contact
             if (!contactUUID in chatContacts){
@@ -412,7 +444,7 @@ export const HomeScreen = (props) => {
                 setChatContacts(chatContacts => ({ ...chatContacts, [contactUUID]: incomingInfo.data}));
             }
             //topic durable subscription
-            // stompClient.subscribe(incomingInfo.data.subscriptionURL, onMessageReceived, {"id":uuidUser, "durable":true, "auto-delete":false});
+            // checkAndSubscribe(incomingInfo.data.subscriptionURL, onMessageReceived, {"id":uuidUser, "durable":true, "auto-delete":false});
 
             //subscribe only if it is a new contact
             if (!contactUUID in chatContacts){
@@ -422,41 +454,68 @@ export const HomeScreen = (props) => {
         }
         else if (incomingInfo.type=="SEND_MESSAGE"){
             console.warn("MESSAGE AT SEND_MESSAGE");
-            console.warn(incomingInfo.data);
-            // console.warn("chatContacts");
-            // console.warn(chatContacts);
+            console.log(incomingInfo.data);
+            // console.log("chatContacts");
+            // console.log(chatContacts);
             let chatUUIDIndex = null;
-            let prefix = "";
+            // let prefix = "";
             if (incomingInfo.data.ChatType=="PRIVATE"){
                 chatUUIDIndex = incomingInfo.data.senderUUID;
-                prefix = "PRIVATE_";
+                // prefix = "PRIVATE_";
+            }
+            else if (incomingInfo.data.ChatType=="GROUP"){
+                chatUUIDIndex = incomingInfo.data.chatUUID;
+                // prefix = "GROUP_";
             }
             else{
-                chatUUIDIndex = incomingInfo.data.chatUUID;
-                prefix = "GROUP_";
+                console.warn("WRONG CHAT TYPE");
+                return;
             }
-            console.warn("chatUUIDIndex: "+ chatUUIDIndex);
-            let localChatContact = chatContacts;
-            let destinationContact = localChatContact[chatUUIDIndex];
-            let previousChatArray = destinationContact.chatArray;
-            console.warn(previousChatArray);
-            console.warn("MODIFICATION");
-            previousChatArray.push(incomingInfo.data);
-            console.warn(previousChatArray);
-            localChatContact[chatUUIDIndex].chatArray = previousChatArray;
-            // console.warn("FULL");
-            // console.warn(localChatContact);
-            setChatContacts(localChatContact);
-            storeChatInfo();
-            console.warn("EXPECTED CHAT INDEX "+(prefix+chatUUIDIndex));
-            console.warn("OPENED CHAT INDEX "+openedChat);
-            console.warn(openedChat);
-            console.warn("ISFOCUSED");
-            console.warn(props.navigation.isFocused());
-            if (props.navigation.isFocused()===false && openedChat==(prefix+chatUUIDIndex)){
-                navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: chatContacts[chatUUIDIndex], stompClient: stompClient, modifyChatFunction: modifyChat, chatIndex: chatUUIDIndex});
-                // props.navigation.navigate('Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: chatContacts[chatUUIDIndex], stompClient: stompClient, modifyChatFunction: modifyChat});//, allChat: chatContacts, chatIndex: chatUUIDIndex
+            console.log("chatUUIDIndex: "+ chatUUIDIndex);
+            let chatInfo = await AsyncStorage.getItem('__CHATINFO__');
+            if (chatInfo!=null){
+                console.warn("FETCHED ALL CHAT");
+                // setChatContacts(JSON.parse(chatInfo));
+                // console.log(chatInfo);
+                let localChatContact = JSON.parse(chatInfo);
+                let destinationContact = localChatContact[chatUUIDIndex];
+                let previousChatArray = destinationContact.chatArray;
+                // console.log(previousChatArray);
+                // console.log("MODIFICATION");
+                previousChatArray.push(incomingInfo.data);
+                // console.log(previousChatArray);
+                localChatContact[chatUUIDIndex].chatArray = previousChatArray;
+                // console.log("FULL");
+                // console.log(localChatContact);
+                setChatContacts(localChatContact);
+                storeChatInfo(localChatContact);
+                console.log("EXPECTED CHAT INDEX "+(chatUUIDIndex));
+
+                let openChatInfo = await AsyncStorage.getItem('__SELECTEDCHAT__');
+                if (openChatInfo!=null){
+                    console.log("FETCHED ALL CHAT");
+                    let openedChatStorage = JSON.parse(openChatInfo);
+                    
+                    console.log("OPENED CHAT INDEX "+openedChatStorage);
+                    console.log("ISFOCUSED");
+                    console.log(props.navigation.isFocused());
+                    if (props.navigation.isFocused()===false && openedChatStorage==chatUUIDIndex){
+                        console.warn("NAVIGATING");
+                        navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: getUserContactNo(), chatDetails: localChatContact[chatUUIDIndex], stompClient: stompClient, modifyChatFunction: modifyChat, chatIndex: chatUUIDIndex});
+                        // props.navigation.navigate('Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: chatContacts[chatUUIDIndex], stompClient: stompClient, modifyChatFunction: modifyChat});//, allChat: chatContacts, chatIndex: chatUUIDIndex
+                    }
+                    else{
+                        console.warn("NOT NAVIGATING");
+                    }
+                }
+                else{
+                    console.warn("COULD NOT __SELECTEDCHAT__ IN STORAGE");
+                }
             }
+            else{
+                console.log("CHATINFO IS NULL");
+            }
+            
         }
         else if (incomingInfo.type=="GROUP_NAME_CHANGE"){
             // {   type: "GROUP_NAME_CHANGE",
@@ -467,48 +526,61 @@ export const HomeScreen = (props) => {
             //         newName: groupNameToEdit,
             //     }
             // }
-            console.warn("Changing group name");
+            console.log("Changing group name");
             changeContactProperty(incomingInfo.data.groupUuid, incomingInfo.data.propertyTitle, incomingInfo.data.newName);
         }
         else{
-            console.warn("Other category");
+            console.log("Other category");
         }
-        // console.warn("AFTER receiving");
-        // console.warn(chatContacts);
+        // console.log("AFTER receiving");
+        // console.log(chatContacts);
+        // console.log("AFTER");
+        // console.log(chatContacts);
     }
 
     const checkUserinStorage = async() => {
-        // console.warn("Checking username");
+        // console.log("Checking username");
         try {
             let userId = await AsyncStorage.getItem('__USERNAME__');
             if (userId!=null && userId!=""){
                 setUser(userId);
-                // console.warn("Found userName");
+                // console.log("Found userName");
             }
             else{
-                console.warn("Could not find userName");
+                console.log("Could not find userName");
                 props.navigation.navigate('Login');
             }
             let uuidOfUser = await AsyncStorage.getItem('__UUID__');
             if (uuidOfUser!=null && uuidOfUser!=""){
                 setUuidUser(uuidOfUser);
-                // console.warn("Found uuid");
+                // console.log("Found uuid");
             }
             else{
-                console.warn("Could not find uuid");
+                console.log("Could not find uuid");
             }
             let userContact = await AsyncStorage.getItem('__CONTACTNO__');
                 if (userContact!=null && userContact!=""){
                     setUserContactNo(userContact);
-                    // console.warn("Found uuid");
+                    // console.log("Found uuid");
                 }
                 else{
-                    console.warn("Could not find contactNumber");
+                    console.log("Could not find contactNumber");
                 }
           } catch (e) {
-            console.warn(e);
+            console.log(e);
           }
           
+    }
+
+    const setSelectedChatInStorage = async(key, value) => {
+        try {
+            console.log("STORING------");
+            console.log();
+            await AsyncStorage.setItem(key, JSON.stringify(value));
+            console.log("Stored info");
+          } catch (e) {
+            console.log(e);
+          }
     }
 
     const navigateToChatScreenAndMarkOpenChat = async(props, ScreenName, params) => {
@@ -517,13 +589,17 @@ export const HomeScreen = (props) => {
         // let chatUUIDIndex = null;
         params["contactTranslation"] = numberToContactTranslation;
         if (params.chatDetails.ChatType=="PRIVATE"){
-            setOpenedChat("PRIVATE_"+params.chatDetails.uuid);
-            console.warn("SELECTED CHAT INDEX "+"PRIVATE_"+params.chatDetails.uuid);
+            setSelectedChatInStorage("__SELECTEDCHAT__", params.chatDetails.uuid);
+            // setOpenedChat(params.chatDetails.uuid);
+            console.log("SELECTED CHAT INDEX "+params.chatDetails.uuid);
+            // console.log("IS IT SET? "+ openedChat);
+            // console.log("CHATDETAILS");
+            // console.log(params.chatDetails);
             // chatUUIDIndex = params.chatDetails.senderUUID;
         }
         else{
-            setOpenedChat("GROUP_"+params.chatDetails.uuid);
-            console.warn("SELECTED CHAT INDEX "+"GROUP_"+params.chatDetails.uuid);
+            setOpenedChat(params.chatDetails.uuid);
+            console.log("SELECTED CHAT INDEX "+params.chatDetails.uuid);
             // chatUUIDIndex = params.chatDetails.chatUUID;
         }
         // setOpenedChat(params.chatDetails.uuid);
@@ -541,14 +617,14 @@ export const HomeScreen = (props) => {
             //         </View>
             //         <View style={{flex:1, backgroundColor: "grey", justifyContent: 'flex-end'}}>
             //             <MaterialIcons name="more-vert" size={20} backgroundColor="white" color={"black"}
-            //                 onPress={()=>console.warn("CLICKED ON BUTTON")} >
+            //                 onPress={()=>console.log("CLICKED ON BUTTON")} >
             //             </MaterialIcons>
             //         </View>
             //     </View>
             // </Text>
             <View style={{flexDirection: 'row', height: 50, flex:1, borderColor:'black', borderBottomWidth:1, backgroundColor: '#E0E5FD', borderRadius: 3}} key={item.uuid}>
                 <View style={{flex: 1, flexDirection: 'row', justifyContent: 'space-between'}}>
-                    <Text onPress={()=>navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: item, stompClient: stompClient, modifyChatFunction: modifyChat, chatIndex: index})} style={{fontWeight: "bold"}}>{item.displayName}</Text>
+                    <Text onPress={()=>navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: getUserContactNo(), chatDetails: item, stompClient: stompClient, modifyChatFunction: modifyChat, chatIndex: index})} style={{fontWeight: "bold"}}>{item.displayName}</Text>
                     
                     {
                         item.ChatType=="GROUP" && 
@@ -577,7 +653,7 @@ export const HomeScreen = (props) => {
         setToBeEditGroup(contact);
         setGroupNameToEdit(contact.displayName);
         setEditGroupModalVisible(true);
-        // console.warn("ALPHA");
+        // console.log("ALPHA");
         // ...
     }
 
@@ -662,17 +738,17 @@ export const HomeScreen = (props) => {
     }
 
     const changeContactProperty = async(chatUUIDIndex, propertyTitle, propertyValue) => {
-        let prefix = "GROUP_";
+        // let prefix = "GROUP_";
         let localChatContact = chatContacts;
-        console.warn("changeContactProperty");
-        console.warn(chatUUIDIndex+", "+propertyTitle+", "+propertyValue);
-        console.warn("ALL");
-        console.warn(chatContacts);
+        console.log("changeContactProperty");
+        console.log(chatUUIDIndex+", "+propertyTitle+", "+propertyValue);
+        console.log("ALL");
+        console.log(chatContacts);
         localChatContact[chatUUIDIndex][propertyTitle] = propertyValue;
         setChatContacts(localChatContact);
-        storeChatInfo();
-        if (props.navigation.isFocused()===false && openedChat==(prefix+chatUUIDIndex)){
-            navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: chatContacts[chatUUIDIndex], stompClient: stompClient, modifyChatFunction: modifyChat, chatIndex: chatUUIDIndex});
+        storeChatInfo(localChatContact);
+        if (props.navigation.isFocused()===false && openedChat==(chatUUIDIndex)){
+            navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: getUserContactNo(), chatDetails: chatContacts[chatUUIDIndex], stompClient: stompClient, modifyChatFunction: modifyChat, chatIndex: chatUUIDIndex});
             // props.navigation.navigate('Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: chatContacts[chatUUIDIndex], stompClient: stompClient, modifyChatFunction: modifyChat});//, allChat: chatContacts, chatIndex: chatUUIDIndex
         }
     }
@@ -708,7 +784,7 @@ export const HomeScreen = (props) => {
                 console.log('Permission: ', res);
                 Contacts.getAll()
                     .then((contacts) => {
-                        // console.warn("CONTACTS");
+                        // console.log("CONTACTS");
                         // work with contacts
                         // for (let contact of contacts) { console.log(contact); }
                         // setAllContacts(contacts);
@@ -794,10 +870,10 @@ export const HomeScreen = (props) => {
     const processSingleContact = async(contact) => {
         let contactNumber = truncateSpaces(contact.phoneNumbers[0].number);
         let uuid = contact.userUUID;
-        // console.warn("processSingleContact");
-        // console.warn(contactNumber);
-        // console.warn(userContactNo);
-        // console.warn(contactNumber!=userContactNo);
+        // console.log("processSingleContact");
+        // console.log(contactNumber);
+        // console.log(userContactNo);
+        // console.log(contactNumber!=userContactNo);
         if (contactNumber!=userContactNo){
             //This Contact will be seen from the Sender's screen
             let newContact = {
@@ -807,12 +883,13 @@ export const HomeScreen = (props) => {
                 imageUrl: '',
                 ChatType: 'PRIVATE',
                 uuid: uuid,
+                senderUuid: uuidUser,
                 destinationURL: uuid+'_'+uuidUser,
                 subscriptionURL: uuidUser+'_'+uuid,
                 "chatArray": []
             }
-            // console.warn("NewContact");
-            // console.warn(newContact);
+            // console.log("NewContact");
+            // console.log(newContact);
             //This Contact will be sent to the Receiver's screen
             let introMessageToSend = 
             {
@@ -833,30 +910,35 @@ export const HomeScreen = (props) => {
             
             //sending INTRO message to receiver so that the receiver subscribes to the chat
             stompClient.send("/app/private-message/__self__"+contact.userUUID, {}, JSON.stringify(introMessageToSend));
-            console.warn("SENDING TO- __self__"+contact.userUUID);
+            console.log("SENDING TO- __self__"+contact.userUUID);
             //subscribing to the chat
             //Adding the new contact to the sender's home screen.
+            console.log("BEFORE ADDING NEW CONTACT");
+            console.log(chatContacts);
+            console.log("UUID value - "+uuid);
             if (Object.keys(chatContacts).length==0){
-                // console.warn("000000");
+                console.log("000000");
                 setChatContacts({[uuid] : newContact});
             }
             else{
-                // console.warn("11111111111111");
+                console.log("11111111111111");
                 setChatContacts(chatContacts => ({ ...chatContacts, [uuid]: newContact}));
-                // console.warn("chatContacts");
-                // console.warn(chatContacts);
+                // console.log("chatContacts");
+                // console.log(chatContacts);
             }
+            console.log("AFTER ADDING NEW CONTACT");
+            console.log(chatContacts);
             //######### UNCOMMENT
             // queue subscription to be done in the chat itself
             if (!uuid in chatContacts){
-                stompClient.subscribe('/queue/'+newContact.subscriptionURL, onMessageReceived, {});
+                checkAndSubscribe('/queue/'+newContact.subscriptionURL, onMessageReceived, {"id":newContact.subscriptionURL+"_"+uuidUser});
             }
-            navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: newContact, stompClient: stompClient, modifyChatFunction: modifyChat, chatIndex: uuid});
+            navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: getUserContactNo(), chatDetails: newContact, stompClient: stompClient, modifyChatFunction: modifyChat, chatIndex: uuid});
             // props.navigation.navigate('Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: newContact, stompClient: stompClient, modifyChatFunction: modifyChat});//, allChat: chatContacts, chatIndex: uuid
             //######### UNCOMMENT
         }
         else{
-            console.warn("You cannot chat with yourself, please use a different contact number");
+            console.log("You cannot chat with yourself, please use a different contact number");
         }
     }
 
@@ -876,15 +958,15 @@ export const HomeScreen = (props) => {
             subscriptionURL: groupUUID,
             "chatArray": []
         }
-        console.warn(contacts.length);
+        console.log(contacts.length);
         for (let i = 0; i<contacts.length; i++){
-            console.warn("ITERATING");
-            console.warn(truncateSpaces(contacts[i].phoneNumbers[0].number));
-            console.warn(truncateSpaces(userContactNo));
-            console.warn(truncateSpaces(contacts[i].phoneNumbers[0].number)!=truncateSpaces(userContactNo));
+            console.log("ITERATING");
+            console.log(truncateSpaces(contacts[i].phoneNumbers[0].number));
+            console.log(truncateSpaces(userContactNo));
+            console.log(truncateSpaces(contacts[i].phoneNumbers[0].number)!=truncateSpaces(userContactNo));
             if (truncateSpaces(contacts[i].phoneNumbers[0].number)!=truncateSpaces(userContactNo)){
-                // console.warn("NewContact");
-                // console.warn(newContact);
+                // console.log("NewContact");
+                // console.log(newContact);
                 let introMessageToSend = 
                 {
                     type: "GROUP_CHAT_INTRO",
@@ -904,10 +986,10 @@ export const HomeScreen = (props) => {
                 
                 // //sending INTRO message to receiver so that the receiver subscribes to the chat
                 stompClient.send("/app/private-message/__self__"+contacts[i].userUUID, {}, JSON.stringify(introMessageToSend));
-                // console.warn("SENDING TO- __self__"+contacts[i].userUUID);
+                // console.log("SENDING TO- __self__"+contacts[i].userUUID);
             }
             else{
-                console.warn("DISCARDING");
+                console.log("DISCARDING");
             }
         }
         //Adding the new contact to the sender's home screen.
@@ -919,9 +1001,9 @@ export const HomeScreen = (props) => {
         }
         //######### UNCOMMENT
         // topic subscription
-        stompClient.subscribe('/topic/'+newContact.subscriptionURL, onMessageReceived, {"id":uuidUser, "durable":true, "auto-delete":false});
+        checkAndSubscribe('/topic/'+newContact.subscriptionURL, onMessageReceived, {"id":newContact.subscriptionURL+"_"+uuidUser, "durable":true, "auto-delete":false});
         
-        navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: newContact, stompClient: stompClient, modifyChatFunction: modifyChat, chatIndex: groupUUID});
+        navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: getUserContactNo(), chatDetails: newContact, stompClient: stompClient, modifyChatFunction: modifyChat, chatIndex: groupUUID});
 
 
         // props.navigation.navigate('Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: newContact, stompClient: stompClient, modifyChatFunction: modifyChat});
@@ -932,7 +1014,7 @@ export const HomeScreen = (props) => {
         // let contactNumber = selectedContacts[0].phoneNumbers[0].number;
         // let uuid = selectedContacts[0].userUUID;
         let contact = selectedContacts[0];
-        console.warn(selectedContacts);
+        console.log(selectedContacts);
         setSelectedContacts([]);
         setSelectMap(new Map());
         setContactsModalVisible(false);
@@ -1069,7 +1151,7 @@ export const HomeScreen = (props) => {
         else{
             setSelectedContacts([contact]);
         }
-        console.warn("Added contact");
+        console.log("Added contact");
     }
 
     const removeContactFromSelection = (contact) => {
@@ -1077,13 +1159,13 @@ export const HomeScreen = (props) => {
         localMap.delete(truncateSpaces(contact.phoneNumbers[0].number));
         setSelectMap(localMap);
         setSelectedContacts(selectedContacts.filter(item => item.phoneNumbers[0].number !== contact.phoneNumbers[0].number));
-        console.warn("Removed contact");
+        console.log("Removed contact");
     }
 
     const onPress = (contact) => {
         // const [selectMap, setSelectMap] = useState(new Map());
         // const [selectedContacts, setSelectedContacts] = useState({});
-        console.warn("NORMAL PRESS");
+        console.log("NORMAL PRESS");
         if (contact.phoneNumbers.length>0){
             if (selectMap.has(truncateSpaces(contact.phoneNumbers[0].number))){
                 removeContactFromSelection(contact);
@@ -1091,12 +1173,12 @@ export const HomeScreen = (props) => {
             else{
                 addContactToSelection(contact);
             }
-            // console.warn(selectedContacts);
+            // console.log(selectedContacts);
         }
         else{
             console.error("Cannot proceed with contact having no phone number!");
         }
-        // console.warn(contact.);
+        // console.log(contact.);
     }
 
     return (
@@ -1122,7 +1204,7 @@ export const HomeScreen = (props) => {
                     {editGroupNameModal}
                     {
                         Object.keys(chatContacts).map(function(key, index) {
-                            // console.warn(index);
+                            // console.log(index);
                             return showChat(chatContacts[key], props, key);
                           })
                     }
