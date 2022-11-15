@@ -12,6 +12,7 @@ import Contacts from 'react-native-contacts';
 import {styles} from '../style/styles';
 import uuid from 'react-native-uuid';
 import OptionsMenu from "react-native-option-menu";
+import PushNotification from "react-native-push-notification";
 
 
 var stompClient = null;
@@ -73,7 +74,7 @@ export const HomeScreen = (props) => {
         // connect();
         fetchChatInfo();
         getContacts();
-
+        createChannels();
         // return () => {
         //     console.log("EXIT FROM []");
         // }
@@ -150,6 +151,65 @@ export const HomeScreen = (props) => {
     //         console.log("Changed Opened Chat value: "+openedChat);
     //     }
     //   }, [props.navigation.isFocused()]);
+
+    const createChannels = () => {
+        // console.warn("createChannels");
+        // PushNotification.createChannel(
+        //     {
+        //         channelId: "test-channel",
+        //         channelName: "Test Channel"
+        //     }
+        // )
+    }
+
+    const handleNotification = (item) => {
+
+        // console.log("NOTIFICATION");
+
+        // // PushNotification.cancelAllLocalNotifications();
+        // PushNotification.getChannels(function (channel_ids) {
+        //     console.warn(channel_ids); // ['channel_id_1']
+        // });
+
+        // PushNotification.channelExists("test-channel", function (exists) {
+        //     console.warn(exists); // true/false
+        //   });
+
+        // PushNotification.localNotification({
+        //     channelId: "test-channel",
+        //     title: "You clicked on " + item.displayName,
+        //     message: item.displayName,
+        //     bigText: item.displayName + " is one of the largest and most beatiful cities in ",
+        //     color: "red",
+        //     id: item.uuid
+        // },
+        // (created) => console.log(`createChannel returned '${created}'`)
+        // );
+
+        // PushNotification.localNotificationSchedule({
+        //     channelId: "test-channel",
+        //     title: "Alarm",
+        //     message: "You clicked on " + item.country + " 20 seconds ago",
+        //     date: new Date(Date.now() + 20 * 1000),
+        //     allowWhileIdle: true,
+        // });
+
+        PushNotification.createChannel(
+            {
+              channelId: "id2", // (required)
+              channelName: "Special messasge", // (required)
+              channelDescription: "Notification for special message", // (optional) default: undefined.
+              importance: 4, // (optional) default: 4. Int value of the Android notification importance
+              vibrate: true, // (optional) default: true. Creates the default vibration patten if true.
+            },
+            (created) => console.log(`createChannel returned '${created}'`) // (optional) callback returns whether the channel was created, false means it already existed.
+          );
+          PushNotification.localNotification({
+            channelId:'id2', //his must be same with channelid in createchannel
+            title:'hello',
+            message:'test message'
+          })
+    }
 
     const checkAndSubscribe = async(destination, callback, params) => {
         console.log("checkAndSubscribe");
@@ -656,7 +716,8 @@ export const HomeScreen = (props) => {
             // </Text>
             <View style={{flexDirection: 'row', height: 50, flex:1, borderColor:'black', borderBottomWidth:1, backgroundColor: '#E0E5FD', borderRadius: 3}} key={item.uuid}>
                 <View style={{flex: 1, flexDirection: 'row', justifyContent: 'space-between'}}>
-                    <Text onPress={()=>navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: getUserContactNo(), chatDetails: item, stompClient: stompClient, modifyChatFunction: modifyChat, chatIndex: index})} style={{fontWeight: "bold"}}>{item.displayName}</Text>
+                    {/* <Text onPress={()=>navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: getUserContactNo(), chatDetails: item, stompClient: stompClient, modifyChatFunction: modifyChat, chatIndex: index})} style={{fontWeight: "bold"}}>{item.displayName}</Text> */}
+                    <Text onPress={()=>handleNotification(item)} style={{fontWeight: "bold"}}>{item.displayName}</Text>
                     
                     {
                         item.ChatType=="GROUP" && 
@@ -782,11 +843,18 @@ export const HomeScreen = (props) => {
                 localChatContact[chatUUIDIndex][propertyTitle] = propertyValue;
                 setChatContacts(localChatContact);
                 setInStorage('__CHATINFO__', localChatContact);
-                // storeChatInfo(localChatContact);
-                //#########################... MODIFICATION NEEDED
-                if (props.navigation.isFocused()===false && openedChat==(chatUUIDIndex)){
-                    navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: getUserContactNo(), chatDetails: localChatContact[chatUUIDIndex], stompClient: stompClient, modifyChatFunction: modifyChat, chatIndex: chatUUIDIndex});
-                    // props.navigation.navigate('Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: chatContacts[chatUUIDIndex], stompClient: stompClient, modifyChatFunction: modifyChat});//, allChat: chatContacts, chatIndex: chatUUIDIndex
+
+                let openChatInfo = await AsyncStorage.getItem('__SELECTEDCHAT__');
+                if (openChatInfo!=null){
+                    console.log("FETCHED ALL CHAT");
+                    let openedChatStorage = JSON.parse(openChatInfo);
+
+                    // storeChatInfo(localChatContact);
+                    //#########################... MODIFICATION NEEDED
+                    if (props.navigation.isFocused()===false && openedChatStorage==(chatUUIDIndex)){
+                        navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: getUserContactNo(), chatDetails: localChatContact[chatUUIDIndex], stompClient: stompClient, modifyChatFunction: modifyChat, chatIndex: chatUUIDIndex});
+                        // props.navigation.navigate('Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: userContactNo, chatDetails: chatContacts[chatUUIDIndex], stompClient: stompClient, modifyChatFunction: modifyChat});//, allChat: chatContacts, chatIndex: chatUUIDIndex
+                    }
                 }
             }
         // let localChatContact = chatContacts;...

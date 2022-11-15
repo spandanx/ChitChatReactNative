@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "335870005313",
+    "project_id": "chitchat-c409b",
+    "storage_bucket": "chitchat-c409b.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:335870005313:android:5f5d8bf2c4cc00ad3bf6c0",
+        "android_client_info": {
+          "package_name": "com.chitchatreactnative"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "335870005313-b8j1dat542a3j1kp9ate8k86j6o20n5n.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD7xLC-sR21QVfDDF1wIBYV1M-SfXR0eRs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "335870005313-b8j1dat542a3j1kp9ate8k86j6o20n5n.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
