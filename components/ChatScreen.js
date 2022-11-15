@@ -386,7 +386,13 @@ export const ChatScreen = (props) => {
                 :
                 (<View style={{height: 80, flex:1, flexDirection:'row', borderColor:'black', borderBottomWidth:1, backgroundColor: '#E0E5FD', borderRadius: 3}} key={item.messageID}>
                     <View style={{flex:8, alignItems:'flex-start'}}>
-                        <Text style={{fontWeight: 'bold', color:'blue'}}>{triggerTranslation(item)}</Text>
+                        {props.navigation.state.params.chatDetails.ChatType=='PRIVATE' &&
+                            <Text style={{fontWeight: 'bold', color:'blue'}}>{props.navigation.state.params.chatDetails.displayName}</Text>
+                        }
+                        {
+                            props.navigation.state.params.chatDetails.ChatType=='GROUP' &&
+                            <Text style={{fontWeight: 'bold', color:'blue'}}>{triggerTranslation(item)}</Text>
+                        }
                         <Text style={{marginLeft:5}}>{item.message}</Text>
                     </View>
                     <View style={{flex:2}}></View>

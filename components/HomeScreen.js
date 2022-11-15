@@ -90,6 +90,8 @@ export const HomeScreen = (props) => {
                 break;
               case EventType.PRESS:
                 console.log('User pressed notification', detail.notification);
+                console.log('Index - '+detail.notification.data.index);
+                redirectFromNotification(detail.notification.data.index);
                 break;
             }
           });
@@ -181,6 +183,15 @@ export const HomeScreen = (props) => {
     //       );
     // }
 
+    const redirectFromNotification = async(index) => {
+        let chatInfo = await AsyncStorage.getItem('__CHATINFO__');
+        if (chatInfo!=null){
+            console.warn("FETCHED ALL CHAT");
+            let localChatContact = JSON.parse(chatInfo);
+            navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: getUserContactNo(), chatDetails: localChatContact[index], stompClient: stompClient, modifyChatFunction: modifyChat, chatIndex: index});
+        }
+    }
+
     const registerNotification = () => {
         // Notifications.registerRemoteNotifications();
 
@@ -216,31 +227,34 @@ export const HomeScreen = (props) => {
     //     console.log(data);
     // }
 
-    const handleNotification = async(item) => {
+    const handleNotification = async(item, index) => {
 
         console.log("NOTIFICATION");
+
+        console.log(item);
 
         // Request permissions (required for iOS)
         await notifee.requestPermission()
 
         // Create a channel (required for Android)
         const channelId = await notifee.createChannel({
-        id: 'default',
-        name: 'Default Channel',
+        id: 'Chat',
+        name: 'Chat Notification',
         });
 
         // Display a notification
         await notifee.displayNotification({
-        title: 'Notification Title',
-        body: 'Main body content of the notification',
+        title: 'New messages from '+item.displayName,
+        body: item.data,
         android: {
             channelId,
             // smallIcon: 'name-of-a-small-icon', // optional, defaults to 'ic_launcher'.
             // pressAction is needed if you want the notification to open the app when pressed
             pressAction: {
-            id: 'default',
+            id: 'Chat',
             },
         },
+        data: {index: index}
         });
 
         // // PushNotification.cancelAllLocalNotifications();
@@ -673,6 +687,8 @@ export const HomeScreen = (props) => {
                     }
                     else{
                         console.warn("NOT NAVIGATING");
+                        console.warn("111223232");
+                        handleNotification(localChatContact[chatUUIDIndex], chatUUIDIndex);
                     }
                 }
                 else{
@@ -792,8 +808,8 @@ export const HomeScreen = (props) => {
             // </Text>
             <View style={{flexDirection: 'row', height: 50, flex:1, borderColor:'black', borderBottomWidth:1, backgroundColor: '#E0E5FD', borderRadius: 3}} key={item.uuid}>
                 <View style={{flex: 1, flexDirection: 'row', justifyContent: 'space-between'}}>
-                    {/* <Text onPress={()=>navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: getUserContactNo(), chatDetails: item, stompClient: stompClient, modifyChatFunction: modifyChat, chatIndex: index})} style={{fontWeight: "bold"}}>{item.displayName}</Text> */}
-                    <Text onPress={()=>handleNotification(item)} style={{fontWeight: "bold"}}>{item.displayName}</Text>
+                    <Text onPress={()=>navigateToChatScreenAndMarkOpenChat(props, 'Chat', {currentUser: user, currentUUID: uuidUser, userContactNo: getUserContactNo, chatDetails: item, stompClient: stompClient, modifyChatFunction: modifyChat, chatIndex: index})} style={{fontWeight: "bold"}}>{item.displayName}</Text>
+                    {/* <Text onPress={()=>handleNotification(item, index)} style={{fontWeight: "bold"}}>{item.displayName}</Text> */}
                     
                     {
                         item.ChatType=="GROUP" && 
