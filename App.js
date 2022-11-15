@@ -33,7 +33,7 @@ import { LoginScreen } from './components/LoginScreen';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 import { createStackNavigator } from 'react-navigation-stack';
-import { createAppContainer } from 'react-navigation';
+import { createAppContainer, NavigationActions } from 'react-navigation';
 
 /* $FlowFixMe[missing-local-annot] The type annotation(s) required by Flow's
  * LTI update could not be added via codemod */

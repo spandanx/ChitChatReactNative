@@ -12,7 +12,11 @@ import Contacts from 'react-native-contacts';
 import {styles} from '../style/styles';
 import uuid from 'react-native-uuid';
 import OptionsMenu from "react-native-option-menu";
-import PushNotification from "react-native-push-notification";
+// import PushNotification from "react-native-push-notification";
+// import {Notifications} from 'react-native-notifications';
+// import notifee from '@notifee/react-native';
+import notifee, {EventType} from '@notifee/react-native';
+
 
 
 var stompClient = null;
@@ -74,10 +78,22 @@ export const HomeScreen = (props) => {
         // connect();
         fetchChatInfo();
         getContacts();
-        createChannels();
+        registerNotification();
+        // createChannels();
         // return () => {
         //     console.log("EXIT FROM []");
         // }
+        return notifee.onForegroundEvent(({ type, detail }) => {
+            switch (type) {
+              case EventType.DISMISSED:
+                console.log('User dismissed notification', detail.notification);
+                break;
+              case EventType.PRESS:
+                console.log('User pressed notification', detail.notification);
+                break;
+            }
+          });
+
     }, []);
 
     useEffect(()=>{
@@ -152,19 +168,80 @@ export const HomeScreen = (props) => {
     //     }
     //   }, [props.navigation.isFocused()]);
 
-    const createChannels = () => {
-        // console.warn("createChannels");
-        // PushNotification.createChannel(
-        //     {
-        //         channelId: "test-channel",
-        //         channelName: "Test Channel"
-        //     }
-        // )
+    // const createChannels = () => {
+    //     PushNotification.createChannel(
+    //         {
+    //           channelId: "id2", // (required)
+    //           channelName: "Special messasge", // (required)
+    //           channelDescription: "Notification for special message", // (optional) default: undefined.
+    //           importance: 4, // (optional) default: 4. Int value of the Android notification importance
+    //           vibrate: true, // (optional) default: true. Creates the default vibration patten if true.
+    //         },
+    //         (created) => console.log(`createChannel returned '${created}'`) // (optional) callback returns whether the channel was created, false means it already existed.
+    //       );
+    // }
+
+    const registerNotification = () => {
+        // Notifications.registerRemoteNotifications();
+
+        // Notifications.events().registerNotificationReceivedForeground((notification, completion) => {
+        // console.log(`Notification received in foreground: ${notification.title} : ${notification.body}`);
+        // completion({alert: false, sound: false, badge: false});
+        // });
+
+        // Notifications.events().registerNotificationOpened((notification, completion) => {
+        // console.log(`Notification opened: ${notification.payload}`);
+        // completion();
+        // });
+        // Notifications.events().registerNotificationReceivedForeground((notification, completion) => {
+        //     console.log(`Notification received in foreground: ${notification.title} : ${notification.body}`);
+        //     completion({alert: false, sound: false, badge: false});
+        //   });
+      
+        //   Notifications.events().registerNotificationOpened((notification, completion) => {
+        //     console.log(`Notification opened: ${notification.payload}`);
+        //     completion();
+        //   });
+              
+        //     Notifications.events().registerNotificationReceivedBackground((notification, completion) => {
+        //     console.log("Notification Received - Background", notification.payload);
+      
+        //     // Calling completion on iOS with `alert: true` will present the native iOS inApp notification.
+        //     completion({alert: true, sound: true, badge: false});
+        //       });
     }
+    
+    // const testFunction = (data) => {
+    //     console.log("TEST FUNCTION");
+    //     console.log(data);
+    // }
 
-    const handleNotification = (item) => {
+    const handleNotification = async(item) => {
 
-        // console.log("NOTIFICATION");
+        console.log("NOTIFICATION");
+
+        // Request permissions (required for iOS)
+        await notifee.requestPermission()
+
+        // Create a channel (required for Android)
+        const channelId = await notifee.createChannel({
+        id: 'default',
+        name: 'Default Channel',
+        });
+
+        // Display a notification
+        await notifee.displayNotification({
+        title: 'Notification Title',
+        body: 'Main body content of the notification',
+        android: {
+            channelId,
+            // smallIcon: 'name-of-a-small-icon', // optional, defaults to 'ic_launcher'.
+            // pressAction is needed if you want the notification to open the app when pressed
+            pressAction: {
+            id: 'default',
+            },
+        },
+        });
 
         // // PushNotification.cancelAllLocalNotifications();
         // PushNotification.getChannels(function (channel_ids) {
@@ -193,22 +270,21 @@ export const HomeScreen = (props) => {
         //     date: new Date(Date.now() + 20 * 1000),
         //     allowWhileIdle: true,
         // });
-
-        PushNotification.createChannel(
-            {
-              channelId: "id2", // (required)
-              channelName: "Special messasge", // (required)
-              channelDescription: "Notification for special message", // (optional) default: undefined.
-              importance: 4, // (optional) default: 4. Int value of the Android notification importance
-              vibrate: true, // (optional) default: true. Creates the default vibration patten if true.
-            },
-            (created) => console.log(`createChannel returned '${created}'`) // (optional) callback returns whether the channel was created, false means it already existed.
-          );
-          PushNotification.localNotification({
-            channelId:'id2', //his must be same with channelid in createchannel
-            title:'hello',
-            message:'test message'
-          })
+        //   PushNotification.localNotification({
+        //     channelId:'id2', //his must be same with channelid in createchannel
+        //     title:'hello',
+        //     message:'test message',
+        //     data: {name: 'abb', user_func: testFunction}
+        //     // test_function: 
+        //   })
+        // let localNotification = Notifications.postLocalNotification({
+        //     body: "Local notification!",
+        //     title: "Local Notification Title",
+        //     silent: false,
+        //     category: "SOME_CATEGORY",
+        //     userInfo: { },
+        //     fireDate: new Date(),
+        // });
     }
 
     const checkAndSubscribe = async(destination, callback, params) => {
