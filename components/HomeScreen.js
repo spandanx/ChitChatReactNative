@@ -99,7 +99,9 @@ export const HomeScreen = (props) => {
     }, []);
 
     useEffect(()=>{
+        console.warn("useEffect uuidUser detected");
         if (uuidUser!=''){
+            console.warn("Connecting");
             connect();
         }
         // return () => {
@@ -727,7 +729,7 @@ export const HomeScreen = (props) => {
             let userId = await AsyncStorage.getItem('__USERNAME__');
             if (userId!=null && userId!=""){
                 setUser(userId);
-                // console.log("Found userName");
+                console.log("Found userName");
             }
             else{
                 console.log("Could not find userName");
@@ -736,10 +738,10 @@ export const HomeScreen = (props) => {
             let uuidOfUser = await AsyncStorage.getItem('__UUID__');
             if (uuidOfUser!=null && uuidOfUser!=""){
                 setUuidUser(uuidOfUser);
-                // console.log("Found uuid");
+                console.warn("Found uuid - "+uuidOfUser);
             }
             else{
-                console.log("Could not find uuid");
+                console.warn("Could not find uuid");
             }
             let userContact = await AsyncStorage.getItem('__CONTACTNO__');
                 if (userContact!=null && userContact!=""){

@@ -20,12 +20,12 @@ export const LoginScreen = (props) => {
     }, []);
 
     useEffect(()=>{
-        if (phoneRegister && idRegister){
+        if (phoneRegister && idRegister && userUuid!=''){
             setUserId(user, userUuid, phoneNo);
             props.navigation.navigate('Home', {currentUser: user, currentUUID: userUuid, userContactNo: phoneNo});
         }
 
-    }, [phoneRegister, idRegister]);
+    }, [phoneRegister, idRegister, userUuid]);
 
     const postData = (url, body, successFunc, key, errorMessage) =>{
 
