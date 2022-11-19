@@ -16,7 +16,9 @@ import OptionsMenu from "react-native-option-menu";
 // import {Notifications} from 'react-native-notifications';
 // import notifee from '@notifee/react-native';
 import notifee, {EventType} from '@notifee/react-native';
-
+// import { useToast } from "react-native-toast-notifications";
+import Toast from 'react-native-root-toast';
+import {toastProperties} from '../style/styles';
 
 
 var stompClient = null;
@@ -73,6 +75,8 @@ export const HomeScreen = (props) => {
     const [groupNameToEdit, setGroupNameToEdit] = useState("");
     const [editGroupModalVisible, setEditGroupModalVisible] = useState(false);
 
+    // const toast = useToast();
+
     useEffect(()=>{
         checkUserinStorage();
         // connect();
@@ -83,6 +87,8 @@ export const HomeScreen = (props) => {
         // return () => {
         //     console.log("EXIT FROM []");
         // }
+          // | zoom-in
+
         return notifee.onForegroundEvent(({ type, detail }) => {
             switch (type) {
               case EventType.DISMISSED:
@@ -108,6 +114,16 @@ export const HomeScreen = (props) => {
         //     console.log("EXIT FROM uuidUser");
         // }
     }, [uuidUser]);
+
+    // useEffect(()=>{
+    //     toast.show("Loaded the homescreen", {
+    //         type: "normal",
+    //         placement: "bottom",
+    //         duration: 2000,
+    //         offset: 30,
+    //         animationType: "slide-in",
+    //       });
+    // },[toast]);
 
     // useEffect(() => {
     //     console.log("ON FOCUS************************");
@@ -540,6 +556,7 @@ export const HomeScreen = (props) => {
     const onConnectError = (error) => {
         console.error("COULD NOT CONNECT!");
         console.error(error);
+        Toast.show('There is a problem connecting to the server, please check internet connection!', toastProperties);
     }
 
     const subcribeToInfoQueue = async() => {
@@ -1411,16 +1428,46 @@ export const HomeScreen = (props) => {
         // console.log(contact.);
     }
 
+    const refresh = () => {
+        console.warn("Refreshing");
+        Toast.show('Refreshing...', toastProperties);
+        checkUserinStorage();
+        connect();
+        fetchChatInfo();
+        getContacts();
+        registerNotification();
+    }
+
     return (
         <View style={{flex:1, flexDirection:'column'}}>
             <View style={{flex:1, flexDirection:'row'}}>
-                    <Text style={{flex:5}}>{"User: "+getCurrentUser()}</Text>
-                    <Text style={{flex:5}}>{"UUID: "+getCurrentUUID()}</Text>
-                    <Text style={{flex:5}}>{"Contact: "+getUserContactNo()}</Text>
+                <Text style={{flex:5, color:'black'}}>{"User: "+getCurrentUser()}</Text>
+                <Text style={{flex:5}}>{"UUID: "+getCurrentUUID()}</Text>
+                <Text style={{flex:5, color: 'black'}}>{"Contact: "+getUserContactNo()}</Text>
                 {/* <Text style={{flex:5}}>{user+", "+userContactNo}</Text>
                 <Text style={{flex:5}}>{"uuidUser "+uuidUser}</Text> */}
                 {/* <Text style={{flex:5}}>{"props "+props.navigation.state.params.currentUUID}</Text> */}
                 {/* <Text style={{flex:1}}>{addContact}</Text> */}
+                <Text style={{flex:1, marginRight: 10, marginTop: 6}}>
+                    <Icon
+                        name="refresh"
+                        backgroundColor="white"
+                        onPress={() => refresh()}
+                        style={{
+                            borderRadius: 20,
+                            padding: 10,
+                            elevation: 2,
+                            backgroundColor: "white",
+
+                            alignSelf: 'flex-end',
+                            marginTop: 20,
+                            position: 'absolute'
+                        }}
+                        color='black'
+                        size={20}
+                        >
+                        </Icon>
+                </Text>
                 <Text style={{flex:1}}>{groupModal}</Text>
                 
             </View>

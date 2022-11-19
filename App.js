@@ -34,6 +34,8 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 import { createStackNavigator } from 'react-navigation-stack';
 import { createAppContainer, NavigationActions } from 'react-navigation';
+// import { ToastProvider } from 'react-native-toast-notifications';
+import { RootSiblingParent } from 'react-native-root-siblings';
 
 /* $FlowFixMe[missing-local-annot] The type annotation(s) required by Flow's
  * LTI update could not be added via codemod */
@@ -72,7 +74,9 @@ const App: () => Node = () => {
 
 
   return (
-    <LoginScreen></LoginScreen>
+    <RootSiblingParent>
+      <LoginScreen/>
+    </RootSiblingParent>
   );
 };
 

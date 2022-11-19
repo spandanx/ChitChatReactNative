@@ -2,7 +2,9 @@
 // import SockJS from 'sockjs-client';
 
 
-export const host = "10.0.2.2";
+// export const host = "10.0.2.2";
+// export const host = "chitchat-chat-app.herokuapp.com";
+export const host = "ec2-54-227-7-13.compute-1.amazonaws.com";
 export const port = "8080";
 
 export const socketURL = 'http://'+host+':'+port+'/ws';

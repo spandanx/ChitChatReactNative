@@ -53,3 +53,14 @@ export const styles = StyleSheet.create({
       padding: 10,
     }
   });
+
+export const toastProperties = {
+    duration: 3000,
+    position: -20,
+    shadow: true,
+    animation: true,
+    hideOnPress: true,
+    delay: 0,
+    backgroundColor: 'white',
+    textColor: 'black'
+};

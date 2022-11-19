@@ -3,6 +3,8 @@ import {View, Button, TextInput, ActivityIndicator} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import uuid from 'react-native-uuid';
 import {phoneToIdUrlPath, idToPhoneUrlPath} from '../properties/networks';
+import Toast from 'react-native-root-toast';
+import {toastProperties} from '../style/styles';
 
 export const LoginScreen = (props) => {
 
@@ -12,12 +14,22 @@ export const LoginScreen = (props) => {
     const [userUuid, setUserUuid] = useState('');
     const [phoneRegister, setPhoneRegister] = useState(false);
     const [idRegister, setIdRegister] = useState(false);
-
+    const [validNumber, setValidNumber] = useState(false);
 
     useEffect(()=>{
         checkUserinStorage();
         console.warn("User : "+user);
     }, []);
+
+    useEffect(()=>{
+        if (isANumber(phoneNo)){
+            setValidNumber(true);
+        }
+        else{
+            setValidNumber(false);
+            Toast.show('Not a valid Number!', toastProperties);
+        }
+    }, [phoneNo]);
 
     useEffect(()=>{
         if (phoneRegister && idRegister && userUuid!=''){
@@ -59,10 +71,15 @@ export const LoginScreen = (props) => {
                     console.warn(errorMessage);
                 }
               })
-            .catch((err) => console.warn(err));
-
-        
+            .catch((err) => console.warn(err));        
     }
+
+    function isANumber(str){
+        if (str.length>0 && str[0]=='+'){
+            return !/\D/.test(str.substring(1, str.length));
+        }
+        return !/\D/.test(str);
+      }
 
     const register = (contactNumber) => {
 
@@ -78,6 +95,7 @@ export const LoginScreen = (props) => {
         }
         //checking if phone number exists
         console.warn("Checking if already exist");
+        console.warn(phoneToIdUrlPath);
         fetch(phoneToIdUrlPath+"?phonenumber="+contactNumber, {
             method: 'GET',
             headers: {
@@ -90,11 +108,13 @@ export const LoginScreen = (props) => {
                 console.warn(responseJson);
                 if (responseJson.length==0){
                     console.warn("Phone number does not exist, so creating it");
+                    Toast.show('Creating new account.', toastProperties);
                     postData(phoneToIdUrlPath, body, setPhoneRegister, 'phonenumber', 'Contact number already exists, try with another number.');
                     postData(idToPhoneUrlPath, body, setIdRegister, 'id', 'Could not generate UUID. Please restart the app.');
                 }
                 else{
                     console.warn("Found existing phone number");
+                    Toast.show('Account already exists.', toastProperties);
                     // console.warn("ID - "+  responseJson[0].id);
                     storeUserinStorage('__UUID__', responseJson[0].id);
                     setUserUuid(responseJson[0].id);
@@ -102,7 +122,10 @@ export const LoginScreen = (props) => {
                     setIdRegister(true);
                 }
               })
-            .catch((err) => console.warn(err));
+            .catch((err) => {
+                console.warn(err);
+                Toast.show('Could not connect to the server, please check your internet connection!', toastProperties);
+            });
     }
 
     const checkUserinStorage = async() => {
@@ -167,21 +190,26 @@ export const LoginScreen = (props) => {
     }
 
     return (
-        <View style={{flex:1, flexDirection:'column'}}>
+        <View style={{flex:1, flexDirection:'column', alignItems: 'center', marginTop: 200}}>
             {wait?
                 <ActivityIndicator size="large" />
                 :
-                <View style={{flex:1, flexDirection:'column'}}>
+                <View style={{flex:1, flexDirection:'column', borderTopWidth: 1, borderTopWidth: 1}}>
                     <TextInput 
                         onChangeText={setUser}
                         value={user}
                         placeholder="Enter username"
+                        placeholderTextColor = 'black'
+                        color='black'
                     />
                     <TextInput 
                         onChangeText={setPhoneNo}
                         value={phoneNo}
                         placeholder="Enter phone number"
                         keyboardType="numeric"
+                        placeholderTextColor = 'black'
+                        color='black'
+                        underlineColorAndroid= {validNumber? 'transparent': 'red'}
                     />
                     <Button
                         onPress={()=>clickUserSet(user)}
