@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import {View, Button, TextInput, ActivityIndicator} from 'react-native';
+import {View, Button, TextInput, ActivityIndicator, Text} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import uuid from 'react-native-uuid';
 import {phoneToIdUrlPath, idToPhoneUrlPath} from '../properties/networks';
 import Toast from 'react-native-root-toast';
 import {toastProperties} from '../style/styles';
+import { Dropdown } from 'react-native-element-dropdown';
+import Feather from 'react-native-vector-icons/Feather';
+import {styles} from '../style/styles';
+import { phoneCodes } from '../properties/phone-codes';
 
 export const LoginScreen = (props) => {
 
@@ -15,11 +19,28 @@ export const LoginScreen = (props) => {
     const [phoneRegister, setPhoneRegister] = useState(false);
     const [idRegister, setIdRegister] = useState(false);
     const [validNumber, setValidNumber] = useState(false);
+    const [loginWait, setLoginWait] = useState(false);
+    const [opsDone, setOpsDone] = useState(false);
+
+    //----- drop down
+    const [countryPhoneCode, setCountryPhoneCode] = useState("");
+    const [isFocus, setIsFocus] = useState(false);
+
+    const dropdownData = phoneCodes;
 
     useEffect(()=>{
         checkUserinStorage();
         console.warn("User : "+user);
+        setLoginWait(false);
     }, []);
+
+    useEffect(()=>{
+        console.warn("Opsdone detected");
+        if (opsDone){
+            setLoginWait(false);
+            console.warn("Opsdone loginWait to false");
+        }
+    }, [opsDone]);
 
     useEffect(()=>{
         if (isANumber(phoneNo)){
@@ -75,17 +96,21 @@ export const LoginScreen = (props) => {
     }
 
     function isANumber(str){
-        if (str.length>0 && str[0]=='+'){
-            return !/\D/.test(str.substring(1, str.length));
+        // if (str.length>0 && str[0]=='+'){
+        //     return !/\D/.test(str.substring(1, str.length));
+        // }
+        if (str!=null && str.length!=10){
+            return false;
         }
         return !/\D/.test(str);
       }
 
-    const register = (contactNumber) => {
-
-        if (contactNumber.length>0 && contactNumber[0]=='+'){
-            contactNumber = contactNumber.substring(1, contactNumber.length);
-        }
+    const register = async(contactNumber) => {
+        // if (contactNumber.length>0 && contactNumber[0]=='+'){
+        //     contactNumber = contactNumber.substring(1, contactNumber.length);
+        // }
+        contactNumber = countryPhoneCode+contactNumber;
+        console.warn("Phone number = "+contactNumber);
         let newUUID = uuid.v4();
         // setUserUuid(newUUID);
 
@@ -121,9 +146,13 @@ export const LoginScreen = (props) => {
                     setPhoneRegister(true);
                     setIdRegister(true);
                 }
+                console.warn("Ops done");
+                setOpsDone(true);
               })
             .catch((err) => {
                 console.warn(err);
+                setOpsDone(true);
+                console.warn("Setting opsDone to true");
                 Toast.show('Could not connect to the server, please check your internet connection!', toastProperties);
             });
     }
@@ -176,13 +205,17 @@ export const LoginScreen = (props) => {
         storeUserinStorage('__CHATINFO__', JSON.stringify({}));
     }
 
-    const clickUserSet = (userId) => {
-        if (!userId || !phoneNo){
+    const clickUserSet = async(userId) => {
+        if (!userId || !phoneNo || countryPhoneCode==""){
             console.warn("User details not set");
+            Toast.show('User details not set!', toastProperties);
         }
         else{
             console.warn("Registering if does not exist");
+            setLoginWait(true);
             register(phoneNo);
+            // setLoginWait(false);
+            // register(phoneNo);
             // setUserId(userId, newUUID);
             // props.navigation.navigate('Home', {currentUser: userId, currentUUID: newUUID});
             // setIsClick(true);
@@ -202,6 +235,36 @@ export const LoginScreen = (props) => {
                         placeholderTextColor = 'black'
                         color='black'
                     />
+                    <Dropdown
+                        style={[styles.dropdown, isFocus && { borderColor: 'blue' }]}
+                        placeholderStyle={styles.placeholderStyle}
+                        selectedTextStyle={styles.selectedTextStyle}
+                        inputSearchStyle={styles.inputSearchStyle}
+                        iconStyle={styles.iconStyle}
+                        data={dropdownData}
+                        search
+                        maxHeight={300}
+                        labelField="label"
+                        valueField="value"
+                        placeholder={!isFocus ? 'Select country' : '...'}
+                        searchPlaceholder="Search..."
+                        value={countryPhoneCode}
+                        onFocus={() => setIsFocus(true)}
+                        onBlur={() => setIsFocus(false)}
+                        onChange={item => {
+                            setCountryPhoneCode(item.value);
+                            setIsFocus(false);
+                        }}
+                        renderLeftIcon={() => (
+                            <Feather
+                            style={styles.icon}
+                            color={isFocus ? 'blue' : 'black'}
+                            name="phone"
+                            size={20}
+                            />
+                        )}
+                    />
+                    <Text style={{color:'black'}}>{"Country code: + "+countryPhoneCode}</Text>
                     <TextInput 
                         onChangeText={setPhoneNo}
                         value={phoneNo}
@@ -213,10 +276,16 @@ export const LoginScreen = (props) => {
                     />
                     <Button
                         onPress={()=>clickUserSet(user)}
-                        title="Send"
+                        title="Login"
                         color="blue"
-                        accessibilityLabel="Set username"
+                        accessibilityLabel="Login"
+                        disabled={loginWait}
                     />
+                    {loginWait? 
+                        <ActivityIndicator size="large" />
+                        :
+                        <></>
+                    }
                 </View>
             }
         </View>

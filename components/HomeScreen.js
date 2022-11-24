@@ -1468,7 +1468,10 @@ export const HomeScreen = (props) => {
                         >
                         </Icon>
                 </Text>
-                <Text style={{flex:1}}>{groupModal}</Text>
+                <Text style={{flex:1}}>
+                    {groupModal}
+                    
+                </Text>
                 
             </View>
             <View style={{flex:12, flexDirection:'row'}}>

@@ -473,6 +473,8 @@ export const ChatScreen = (props) => {
                         onChangeText={setText}
                         value={text}
                         placeholder="Message"
+                        placeholderTextColor = 'black'
+                        color='black'
                     />
                 </View>
                 <View style={{flex:2}}>
