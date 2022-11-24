@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import {View, Text, Button, TextInput, StyleSheet, ScrollView} from 'react-native';
+import {View, Text, Button, TextInput, StyleSheet, ScrollView, ImageBackground} from 'react-native';
 import {over} from 'stompjs';
 import SockJS from 'sockjs-client';
 // var RNFS = require('react-native-fs');
@@ -8,6 +8,17 @@ import {socketURL} from '../properties/networks';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import uuid from 'react-native-uuid';
 import {styles} from '../style/styles';
+import { chatBackgroundImage } from '../properties/images-urls';
+// import backgroundImage from '../images/background.jpg';
+// import  from './background.jpg';
+
+// const image = { uri: 'https://user-images.githubusercontent.com/56664469/203856075-4a772509-5f00-4b34-bfa9-28f193ff58e1.jpg' };
+// const image = { uri: backgroundImage};
+// const image = require("background.jpg");
+// const image = { uri: '../images/background.jpg' };
+//https://iili.io/H3Ydy9p.jpg
+//https://iili.io/H37bogI.jpg
+// const image = { uri: 'https://www.shutterstock.com/image-illustration/seamless-purple-white-stripe-pattern-260nw-334515410.jpg' };
 
 
 var stompClient = null;
@@ -361,31 +372,18 @@ export const ChatScreen = (props) => {
     const showChat = (item) => {
         return (
             item.senderUUID==props.navigation.state.params.currentUUID ?
-                // (<View style={{flex:1, flexDirection:'row', borderColor:'black', borderWidth:1}}>
-                //     <View style={{flex:2}}></View>
-                //     <View style={{flex:8, alignItems:'flex-end'}}>
-                //         <Text>{item.message}</Text>
-                //     </View>
-                // </View>)
-                // :
-                // (<View style={{flex:1, flexDirection:'row', borderColor:'black', borderWidth:1}}>
-                //     <View style={{flex:8, alignItems:'flex-start'}}>
-                //         <Text>{item.message}</Text>
-                //     </View>
-                //     <View style={{flex:2}}></View>
-                // </View>)
-                (<View style={{height: 80, flex:1, flexDirection:'row', borderColor:'black', borderBottomWidth:1, backgroundColor: '#E0E5FD', borderRadius: 3}} key={item.messageID}>
+                (<View style={{height: 80, flex:1, flexDirection:'row', borderRadius: 3}} key={item.messageID}>
                     <View style={{flex:2}}></View>
-                    <View style={{flex:8, alignItems:'flex-end'}}>
+                    <View style={{marginRight:5, marginBottom: 25, padding: 5, borderRadius:10, alignItems:'flex-end', backgroundColor: '#E0E5FD'}}>
                         {/* <Text>{"Sender: "+item.senderUUID}</Text>
                         <Text>{"Current: "+props.navigation.state.params.currentUUID}</Text> */}
                         <Text style={{fontWeight: 'bold', color:'blue'}}>{"You"}</Text>
-                        <Text style={{marginRight:5}}>{item.message}</Text>
+                        <Text style={{backgroundColor: '#E0E5FD'}}>{item.message}</Text>
                     </View>
                 </View>)
                 :
-                (<View style={{height: 80, flex:1, flexDirection:'row', borderColor:'black', borderBottomWidth:1, backgroundColor: '#E0E5FD', borderRadius: 3}} key={item.messageID}>
-                    <View style={{flex:8, alignItems:'flex-start'}}>
+                (<View style={{height: 80, flex:1, flexDirection:'row', borderRadius: 3}} key={item.messageID}>
+                    <View style={{marginRight:5, marginBottom: 25, padding: 5, borderRadius:10, alignItems:'flex-start', backgroundColor: '#E0E5FD'}}>
                         {props.navigation.state.params.chatDetails.ChatType=='PRIVATE' &&
                             <Text style={{fontWeight: 'bold', color:'blue'}}>{props.navigation.state.params.chatDetails.displayName}</Text>
                         }
@@ -393,7 +391,7 @@ export const ChatScreen = (props) => {
                             props.navigation.state.params.chatDetails.ChatType=='GROUP' &&
                             <Text style={{fontWeight: 'bold', color:'blue'}}>{triggerTranslation(item)}</Text>
                         }
-                        <Text style={{marginLeft:5}}>{item.message}</Text>
+                        <Text>{item.message}</Text>
                     </View>
                     <View style={{flex:2}}></View>
                 </View>)
@@ -417,6 +415,7 @@ export const ChatScreen = (props) => {
                 </Text>
             </View> */}
             <View style={{flex:12, backgroundColor:'white', flexDirection:'column'}}>
+            <ImageBackground source={{uri: chatBackgroundImage}} resizeMode="cover" style={{flex: 1, justifyContent: "center"}}>
                 <ScrollView style={styles.scrollView}>
                 {/* {
                     props.navigation.state.params.chatDetails.chatArray.map((item)=>(
@@ -432,7 +431,7 @@ export const ChatScreen = (props) => {
                         showChat(item)
                     ))
                 }
-                {emptySpace(6)}
+                {/* {emptySpace(6)} */}
                 {/* {
                 <Button
                     onPress={()=>connect()}
@@ -457,7 +456,9 @@ export const ChatScreen = (props) => {
                     accessibilityLabel="Save"
                     />
                 } */}
+                    
                 </ScrollView>
+                </ImageBackground>
             </View>
             {/* <View style={{flex:1, flexDirection:'row'}}>
                 <TextInput

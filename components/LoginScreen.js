@@ -99,9 +99,6 @@ export const LoginScreen = (props) => {
         // if (str.length>0 && str[0]=='+'){
         //     return !/\D/.test(str.substring(1, str.length));
         // }
-        if (str!=null && str.length!=10){
-            return false;
-        }
         return !/\D/.test(str);
       }
 
@@ -205,10 +202,20 @@ export const LoginScreen = (props) => {
         storeUserinStorage('__CHATINFO__', JSON.stringify({}));
     }
 
+    const checkPhoneNumberlength = () => {
+        if (str!=null && str.length!=10){
+            return false;
+        }
+    }
+
     const clickUserSet = async(userId) => {
         if (!userId || !phoneNo || countryPhoneCode==""){
             console.warn("User details not set");
             Toast.show('User details not set!', toastProperties);
+        }
+        else if (phoneNo==null || phoneNo.length!=10){
+            console.warn("Not a valid phone number");
+            Toast.show('Not a valid phone number!', toastProperties);
         }
         else{
             console.warn("Registering if does not exist");
