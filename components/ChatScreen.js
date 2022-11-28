@@ -6,9 +6,13 @@ import SockJS from 'sockjs-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {socketURL} from '../properties/networks';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import AntDesign from 'react-native-vector-icons/AntDesign';
 import uuid from 'react-native-uuid';
 import {styles} from '../style/styles';
 import { chatBackgroundImage } from '../properties/images-urls';
+
+import Toast from 'react-native-root-toast';
+import {toastProperties} from '../style/styles';
 // import backgroundImage from '../images/background.jpg';
 // import  from './background.jpg';
 
@@ -219,17 +223,68 @@ export const ChatScreen = (props) => {
     //     setData(data => [...data, newMsg]);
     // }
 
-    const onMessageReceived = (msg) => {
-        console.log("Received");
-        console.log(msg.body);
-        let msgBody = JSON.parse(msg.body);
-        if (msgBody.type == 'SEND_MESSAGE'){
-            msgBody.data['status'] = 'SEEN';
-            setData(data => [...data, msgBody.data]);
+    // const onMessageReceived = (msg) => {
+    //     console.log("Received");
+    //     console.log(msg.body);
+    //     let msgBody = JSON.parse(msg.body);
+    //     if (msgBody.type == 'SEND_MESSAGE'){
+    //         msgBody.data['status'] = 'SEEN';
+    //         setData(data => [...data, msgBody.data]);
+    //     }
+    //     else{
+    //         console.log("WRONG MESSAGE TYPE RECEIVED");
+    //     }
+    // }
+
+    const reSendMessage = (msg) => {
+
+        let newMessage = 
+            {
+                type: "SEND_MESSAGE",
+                data: msg
+            }
+
+        if (props.navigation.state.params.chatDetails.ChatType=='PRIVATE'){
+            //send to queue
+            console.log("props.navigation.state.params.stompClient.connected");
+            console.log(props.navigation.state.params.stompClient.connected);
+            if (props.navigation.state.params.stompClient.connected){
+                newMessage.data.status = "SENT";
+
+                let localModifiedArray = props.navigation.state.params.chatDetails.chatArray;
+                let chatIndex = -1;
+                for (let i = localModifiedArray.length; i>=0; i--){
+                    if (localModifiedArray.messageID==msg.messageID){
+                        chatIndex = i;
+                    }
+                }
+                if (chatIndex!=-1){
+                    // localModifiedArray.push(newMessage.data);...
+                    localModifiedArray[chatIndex] = newMessage.data;
+                    props.navigation.state.params.modifyChatFunction(localModifiedArray, props.navigation.state.params.chatIndex);
+                    Toast.show('Message sent.', toastProperties);
+                    console.warn("Message sent");
+
+                    props.navigation.state.params.stompClient.send("/app/private-message/"+props.navigation.state.params.chatDetails.destinationURL, {}, JSON.stringify(newMessage));
+                    console.log("SENT to QUEUE");
+                }
+                else{
+                    console.log("CHAT NOT FOUND");
+                }                
+            }
+            else{
+                Toast.show('Could not send message, check you internet connection!', toastProperties);
+                console.warn('Could not send message, check you internet connection!');
+            }
+        }
+        else if (props.navigation.state.params.chatDetails.ChatType=='GROUP'){
+            
+            console.log("GROUP MESSAGE SEND NOT Supported yet!");
         }
         else{
-            console.log("WRONG MESSAGE TYPE RECEIVED");
+            console.log("WRONG CHAT TYPE TO SEND");
         }
+
     }
 
     const sendMessage = (msg) => {
@@ -266,11 +321,23 @@ export const ChatScreen = (props) => {
             // stompClient.publish("/app/message", {}, JSON.stringify(newMessage));
             if (props.navigation.state.params.chatDetails.ChatType=='PRIVATE'){
                 //send to queue
-                props.navigation.state.params.stompClient.send("/app/private-message/"+props.navigation.state.params.chatDetails.destinationURL, {}, JSON.stringify(newMessage));
-                console.log("SENT to QUEUE");
-                let localModifiedArray = props.navigation.state.params.chatDetails.chatArray;
-                localModifiedArray.push(newMessage.data);
-                props.navigation.state.params.modifyChatFunction(localModifiedArray, props.navigation.state.params.chatIndex);
+                console.log("props.navigation.state.params.stompClient.connected");
+                console.log(props.navigation.state.params.stompClient.connected);
+                if (props.navigation.state.params.stompClient.connected){
+                    props.navigation.state.params.stompClient.send("/app/private-message/"+props.navigation.state.params.chatDetails.destinationURL, {}, JSON.stringify(newMessage));
+                    console.log("SENT to QUEUE");
+                    let localModifiedArray = props.navigation.state.params.chatDetails.chatArray;
+                    localModifiedArray.push(newMessage.data);
+                    props.navigation.state.params.modifyChatFunction(localModifiedArray, props.navigation.state.params.chatIndex);
+                }
+                else{
+                    let localModifiedArray = props.navigation.state.params.chatDetails.chatArray;
+                    newMessage.data.status = "FAILED";
+                    localModifiedArray.push(newMessage.data);
+                    props.navigation.state.params.modifyChatFunction(localModifiedArray, props.navigation.state.params.chatIndex);
+                    Toast.show('Could not send message, check you internet connection!', toastProperties);
+                    console.warn('Could not send message, check you internet connection!');
+                }
             }
             else if (props.navigation.state.params.chatDetails.ChatType=='GROUP'){
                 //sent to topic
@@ -350,19 +417,19 @@ export const ChatScreen = (props) => {
     //--------------------- Websockets section
 
 
-    const emptySpace = (n) => {
-        let array = [];
-        for (let i = 0; i<n; i++){
-            array.push(
-                <View style={{flex:1, flexDirection:'row'}}>
-                    <View style={{flex:2}}></View>
-                    <View style={{flex:8, alignItems:'flex-end'}}>
-                    </View>
-                </View>
-            );
-        }
-        return array;
-    }
+    // const emptySpace = (n) => {
+    //     let array = [];
+    //     for (let i = 0; i<n; i++){
+    //         array.push(
+    //             <View style={{flex:1, flexDirection:'row'}}>
+    //                 <View style={{flex:2}}></View>
+    //                 <View style={{flex:8, alignItems:'flex-end'}}>
+    //                 </View>
+    //             </View>
+    //         );
+    //     }
+    //     return array;
+    // }
     const triggerTranslation = (contact) => {
         // console.log("CONTACT CHAT - ");
         // console.log(contact.senderContactNo);
@@ -374,11 +441,17 @@ export const ChatScreen = (props) => {
             item.senderUUID==props.navigation.state.params.currentUUID ?
                 (<View style={{height: 80, flex:1, flexDirection:'row', borderRadius: 3}} key={item.messageID}>
                     <View style={{flex:2}}></View>
-                    <View style={{marginRight:5, marginBottom: 25, padding: 5, borderRadius:10, alignItems:'flex-end', backgroundColor: '#E0E5FD'}}>
+                    <View style={{marginRight:5, marginBottom: 25, borderRadius:10, alignItems:'flex-end', backgroundColor: '#E0E5FD', paddingHorizontal: 5, paddingVertical: 10}}>
                         {/* <Text>{"Sender: "+item.senderUUID}</Text>
                         <Text>{"Current: "+props.navigation.state.params.currentUUID}</Text> */}
                         <Text style={{fontWeight: 'bold', color:'blue'}}>{"You"}</Text>
-                        <Text style={{backgroundColor: '#E0E5FD'}}>{item.message}</Text>
+                        <Text style={{backgroundColor: '#E0E5FD', marginBottom: 5}}>{item.message}</Text>
+                        {
+                            item.status=='FAILED'?
+                                <AntDesign name="reload1" size={10} color={"red"} onPress={() => reSendMessage(item)}>{" Retry"}</AntDesign>
+                            :
+                                <Text></Text>
+                        }
                     </View>
                 </View>)
                 :
