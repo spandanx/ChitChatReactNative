@@ -320,9 +320,12 @@ export const HomeScreen = (props) => {
     }
 
     const checkAndSubscribe = async(destination, callback, params) => {
-        console.log("checkAndSubscribe");
+        console.log("CHECKANDSUBSCRIBE() CALLED");
+        console.log(stompClient.subscriptions);
+        console.log("params.id - "+params.id);
+        console.log("params.id in stompClient.subscriptions"+(params.id in stompClient.subscriptions));
         if (!stompClient){
-            console.warn("Stompcliet does not esist!");
+            console.warn("Stompclient does not esist!");
             return;
         }
         if (params.id in stompClient.subscriptions){
@@ -527,7 +530,7 @@ export const HomeScreen = (props) => {
             if (chatInfo!=null){
                 console.log("FETCHED ALL CHAT");
                 setChatContacts(JSON.parse(chatInfo));
-                console.log(chatInfo);
+                // console.log(chatInfo);
             }
             else{
                 console.log("Could not find userName");
@@ -539,10 +542,23 @@ export const HomeScreen = (props) => {
     }
 
     const connect = () => {
-        let Sock = new SockJS(socketURL);
-        stompClient = over(Sock);
-        console.log(stompClient);
-        stompClient.connect({}, onConnected, onConnectError);//{"client-id": props.navigation.state.params.currentUser }
+        if (stompClient!=null){
+            console.log("STOMPCLIENT is not null");
+            if (stompClient.connected){
+                console.log("ALREADY CONNECTED");
+            }
+            else{
+                console.log("CONNECTING..");
+                stompClient.connect({}, onConnected, onConnectError);
+            }
+        }
+        else{
+            console.log("STOMPCLIENT is null");
+            let Sock = new SockJS(socketURL);
+            stompClient = over(Sock);
+            console.log(stompClient);
+            stompClient.connect({}, onConnected, onConnectError);//{"client-id": props.navigation.state.params.currentUser }
+        }
     }
 
     const onConnected = async() => {
@@ -663,6 +679,14 @@ export const HomeScreen = (props) => {
             }
             else if (incomingInfo.data.ChatType=="GROUP"){
                 chatUUIDIndex = incomingInfo.data.chatUUID;
+                //do not push the message to chat if sender sends message to a topic
+                //as that is broadcasted to every user and there could be duplication of messages.
+                console.log("incomingInfo.data.senderUUID - "+incomingInfo.data.senderUUID);
+                console.log("uuidUser - "+uuidUser);
+                if (incomingInfo.data.senderUUID==uuidUser){
+                    console.log("Ingnoring message, sender and receiver is the same");
+                    return;
+                }
                 // prefix = "GROUP_";
             }
             else{
