@@ -54,8 +54,9 @@ export const LoginScreen = (props) => {
 
     useEffect(()=>{
         if (phoneRegister && idRegister && userUuid!=''){
-            setUserId(user, userUuid, phoneNo);
-            props.navigation.navigate('Home', {currentUser: user, currentUUID: userUuid, userContactNo: phoneNo});
+            setUserId(user, userUuid, countryPhoneCode+phoneNo);
+            console.log("SAVING PHONE NUMBER - "+countryPhoneCode+phoneNo);
+            props.navigation.navigate('Home', {currentUser: user, currentUUID: userUuid, userContactNo: countryPhoneCode+phoneNo});
         }
 
     }, [phoneRegister, idRegister, userUuid]);

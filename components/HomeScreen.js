@@ -25,36 +25,6 @@ var stompClient = null;
 
 export const HomeScreen = (props) => {
 
-
-//     [{
-//         lastActivity: 1666880022,
-//         displayName: "Dean",
-//         lastChat: 'Hi',
-//         imageUrl: 'someurl',
-//         ChatType: 'PRIVATE',
-//         uuid: 'dummyuuid1',
-//         subscriptionURL: '/queue/user1'
-//     },
-//     {
-//         lastActivity: 1666880122,
-//         displayName: "John",
-//         lastChat: 'Hello',
-//         imageUrl: 'someurl',
-//         ChatType: 'PRIVATE',
-//         uuid: 'dummyuuid2',
-//         subscriptionURL: '/queue/user2'
-//     },
-//     {
-//         lastActivity: 1666880122,
-//         displayName: "Dummy_group1",
-//         lastChat: 'Hello',
-//         imageUrl: 'someurl',
-//         ChatType: 'GROUP',
-//         uuid: 'dummy_group_uuid1',
-//         subscriptionURL: '/topic/group1'
-//     }
-// 
-
     const [chatContacts, setChatContacts] = useState({});
     const [user, setUser] = useState('');
     const [uuidUser, setUuidUser] = useState('');
@@ -80,6 +50,7 @@ export const HomeScreen = (props) => {
     useEffect(()=>{
         checkUserinStorage();
         // connect();
+        getNotificationPermission();
         fetchChatInfo();
         getContacts();
         registerNotification();
@@ -115,39 +86,6 @@ export const HomeScreen = (props) => {
         // }
     }, [uuidUser]);
 
-    // useEffect(()=>{
-    //     toast.show("Loaded the homescreen", {
-    //         type: "normal",
-    //         placement: "bottom",
-    //         duration: 2000,
-    //         offset: 30,
-    //         animationType: "slide-in",
-    //       });
-    // },[toast]);
-
-    // useEffect(() => {
-    //     console.log("ON FOCUS************************");
- 
-    //     // Call only when screen open or when back on screen 
-    //     if(isFocused){ 
-    //         console.log("ON FOCUS IF ************************"); 
-            
-    //     }
-    // }, [isFocused]);
-
-    // useEffect(()=>{
-    //     if (connected === true && Object.keys(chatContacts).length > 0){
-    //         loopSubscribe(chatContacts);
-    //     }
-    //     // if (stompClient!=null){
-    //     //     console.log("STOMP CLIENT ------ "+stompClient);
-    //     // }
-    //     // if (Object.keys(chatContacts).length > 0){
-    //     //     console.log("chatContacts ------ ");
-    //     //     console.log(chatContacts);
-    //     // }
-    // }, [connected, chatContacts]);
-
     useEffect(()=>{
         if (props.navigation.state && props.navigation.state.params && props.navigation.state.params.currentUser!='' && props.navigation.state.params.currentUUID!='' && props.navigation.state.params.userContactNo!=''){
             console.log("SETTING ALL ************************");
@@ -168,38 +106,19 @@ export const HomeScreen = (props) => {
         // }
     }, [props.navigation.state.params?.currentUser, props.navigation.state.params?.currentUUID, props.navigation.state.params?.userContactNo]);
 
-    // useEffect(()=>{
-    //     storeChatInfo();
+    const getNotificationPermission = async() => {
+        // PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS, {
+        //     title: 'Notifications',
+        //     message: 'This app would like to send notifications.',
+        //     buttonPositive: 'Please accept',
+        // })
+        await notifee.requestPermission();
+        const channelId = await notifee.createChannel({
+            id: 'Chat',
+            name: 'Chat Notification',
+        });
 
-    //     // return () => {
-    //     //     console.log("EXIT FROM chatContacts");
-    //     // }
-    // }, [chatContacts]);
-
-    // useEffect(()=>{
-    //     filterValidContacts();
-    // }, [allContacts]);
-
-    // useEffect(() => {
-    //     if (props.navigation.isFocused()) {
-    //         console.log("FOCUS CHANGED IN HOME"+props.navigation.isFocused());
-    //         setOpenedChat("");
-    //         console.log("Changed Opened Chat value: "+openedChat);
-    //     }
-    //   }, [props.navigation.isFocused()]);
-
-    // const createChannels = () => {
-    //     PushNotification.createChannel(
-    //         {
-    //           channelId: "id2", // (required)
-    //           channelName: "Special messasge", // (required)
-    //           channelDescription: "Notification for special message", // (optional) default: undefined.
-    //           importance: 4, // (optional) default: 4. Int value of the Android notification importance
-    //           vibrate: true, // (optional) default: true. Creates the default vibration patten if true.
-    //         },
-    //         (created) => console.log(`createChannel returned '${created}'`) // (optional) callback returns whether the channel was created, false means it already existed.
-    //       );
-    // }
+    }
 
     const redirectFromNotification = async(index) => {
         let chatInfo = await AsyncStorage.getItem('__CHATINFO__');
@@ -252,7 +171,7 @@ export const HomeScreen = (props) => {
         console.log(item);
 
         // Request permissions (required for iOS)
-        await notifee.requestPermission()
+        await notifee.requestPermission();
 
         // Create a channel (required for Android)
         const channelId = await notifee.createChannel({
@@ -275,48 +194,6 @@ export const HomeScreen = (props) => {
         data: {index: index}
         });
 
-        // // PushNotification.cancelAllLocalNotifications();
-        // PushNotification.getChannels(function (channel_ids) {
-        //     console.warn(channel_ids); // ['channel_id_1']
-        // });
-
-        // PushNotification.channelExists("test-channel", function (exists) {
-        //     console.warn(exists); // true/false
-        //   });
-
-        // PushNotification.localNotification({
-        //     channelId: "test-channel",
-        //     title: "You clicked on " + item.displayName,
-        //     message: item.displayName,
-        //     bigText: item.displayName + " is one of the largest and most beatiful cities in ",
-        //     color: "red",
-        //     id: item.uuid
-        // },
-        // (created) => console.log(`createChannel returned '${created}'`)
-        // );
-
-        // PushNotification.localNotificationSchedule({
-        //     channelId: "test-channel",
-        //     title: "Alarm",
-        //     message: "You clicked on " + item.country + " 20 seconds ago",
-        //     date: new Date(Date.now() + 20 * 1000),
-        //     allowWhileIdle: true,
-        // });
-        //   PushNotification.localNotification({
-        //     channelId:'id2', //his must be same with channelid in createchannel
-        //     title:'hello',
-        //     message:'test message',
-        //     data: {name: 'abb', user_func: testFunction}
-        //     // test_function: 
-        //   })
-        // let localNotification = Notifications.postLocalNotification({
-        //     body: "Local notification!",
-        //     title: "Local Notification Title",
-        //     silent: false,
-        //     category: "SOME_CATEGORY",
-        //     userInfo: { },
-        //     fireDate: new Date(),
-        // });
     }
 
     const checkAndSubscribe = async(destination, callback, params) => {
@@ -605,18 +482,20 @@ export const HomeScreen = (props) => {
 
             let chatInfo = await AsyncStorage.getItem('__CHATINFO__');
             if (chatInfo!=null){
-                let localChatContact = JSON.parse(chatInfo);
-                let modifiedChatContacts = {};
-
-                if (!contactUUID in localChatContact){
+                let modifiedChatContacts = JSON.parse(chatInfo);
+                // let modifiedChatContacts = {};
+                
+                console.log("!contactUUID in modifiedChatContacts:"+(!contactUUID in modifiedChatContacts));
+                console.log("!modifiedChatContacts.hasOwnProperty(contactUUID):"+(!modifiedChatContacts.hasOwnProperty(contactUUID)));
+                if (!modifiedChatContacts.hasOwnProperty(contactUUID)){
                     subscribeToChatContact(incomingInfo.data);
                 }
 
-                if (Object.keys(localChatContact).length==0){
+                if (Object.keys(modifiedChatContacts).length==0){
                     modifiedChatContacts = {[contactUUID] : incomingInfo.data};
                 }
                 else{
-                    modifiedChatContacts = { ...localChatContact, [contactUUID]: incomingInfo.data};
+                    modifiedChatContacts = { ...modifiedChatContacts, [contactUUID]: incomingInfo.data};
                 }
                 // console.log(incomingInfo.data);
                 //queue subscription
@@ -639,20 +518,22 @@ export const HomeScreen = (props) => {
 
             let chatInfo = await AsyncStorage.getItem('__CHATINFO__');
             if (chatInfo!=null){
-                let localChatContact = JSON.parse(chatInfo);
+                let modifiedChatContacts = JSON.parse(chatInfo);
 
                 //subscribe only if it is a new contact
-                if (!contactUUID in localChatContact){
+                console.log("!contactUUID in modifiedChatContacts:"+(!contactUUID in modifiedChatContacts));
+                console.log("!modifiedChatContacts.hasOwnProperty(contactUUID):"+(!modifiedChatContacts.hasOwnProperty(contactUUID)));
+                if (!modifiedChatContacts.hasOwnProperty(contactUUID)){//!contactUUID in modifiedChatContacts
                     subscribeToChatContact(incomingInfo.data);
                 }
 
-                let modifiedChatContacts = {};
+                // let modifiedChatContacts = {};
 
-                if (Object.keys(localChatContact).length==0){
+                if (Object.keys(modifiedChatContacts).length==0){
                     modifiedChatContacts = {[contactUUID] : incomingInfo.data};
                 }
                 else{
-                    modifiedChatContacts = { ...localChatContact, [contactUUID]: incomingInfo.data};
+                    modifiedChatContacts = { ...modifiedChatContacts, [contactUUID]: incomingInfo.data};
                 }
 
                 setInStorage('__CHATINFO__', modifiedChatContacts);
@@ -1020,7 +901,7 @@ export const HomeScreen = (props) => {
         PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.READ_CONTACTS, {
             title: 'Contacts',
             message: 'This app would like to view your contacts.',
-            buttonPositive: 'Please accept bare mortal',
+            buttonPositive: 'Please accept',
         })
             .then((res) => {
                 console.log('Permission: ', res);
@@ -1466,7 +1347,8 @@ export const HomeScreen = (props) => {
         <View style={{flex:1, flexDirection:'column'}}>
             <View style={{flex:1, flexDirection:'row'}}>
                 <Text style={{flex:5, color:'black'}}>{"User: "+getCurrentUser()}</Text>
-                <Text style={{flex:5}}>{"UUID: "+getCurrentUUID()}</Text>
+                {/* <Text style={{flex:5}}>{"UUID: "+getCurrentUUID()}</Text> */}
+                <Text style={{flex:5}}>{stompClient != null && stompClient.connected? "Connected": "Not Connected"}</Text>
                 <Text style={{flex:5, color: 'black'}}>{"Contact: "+getUserContactNo()}</Text>
                 {/* <Text style={{flex:5}}>{user+", "+userContactNo}</Text>
                 <Text style={{flex:5}}>{"uuidUser "+uuidUser}</Text> */}

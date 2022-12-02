@@ -278,12 +278,34 @@ export const ChatScreen = (props) => {
 
                     let localModifiedArray = props.navigation.state.params.chatDetails.chatArray;
                     let chatIndex = -1;
-                    for (let i = localModifiedArray.length; i>=0; i--){
-                        if (localModifiedArray.messageID==msg.messageID){
-                            chatIndex = i;
+                    
+                    // console.log("Target Chat");
+                    // console.log(msg);
+
+                    // console.log("localModifiedArray of length - "+localModifiedArray.length);
+                    // console.log("Type - "+(typeof localModifiedArray));
+                    // console.log(localModifiedArray);
+                    // console.log("TARGET MessageID - " + );
+                    // for (let i = localModifiedArray.length; i>=0; i--){
+                    //     console.log("i-th chat");
+                    //     console.log(localModifiedArray[i]);
+
+                    //     if (localModifiedArray[i].messageID==msg.messageID){
+                    //         chatIndex = i;
+                    //     }
+                    // }
+
+                    localModifiedArray.forEach((element, index) => {
+                        // console.log("------------");
+                        // console.log(element);
+                        // console.log(index);
+                        if (element.messageID==msg.messageID){
+                            chatIndex = index;
                         }
-                    }
+                    });
+
                     if (chatIndex!=-1){
+                        console.log("CHAT FOUND");
                         // localModifiedArray.push(newMessage.data);...
                         localModifiedArray[chatIndex] = newMessage.data;
                         props.navigation.state.params.modifyChatFunction(localModifiedArray, props.navigation.state.params.chatIndex);
