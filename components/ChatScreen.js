@@ -264,49 +264,29 @@ export const ChatScreen = (props) => {
             console.log(localMap);
 
             let newMessage = 
-                {
-                    type: "SEND_MESSAGE",
-                    data: msg
-                }
+            {
+                type: "SEND_MESSAGE",
+                data: msg
+            }
 
-            if (props.navigation.state.params.chatDetails.ChatType=='PRIVATE'){
-                //send to queue
-                console.log("props.navigation.state.params.stompClient.connected");
-                console.log(props.navigation.state.params.stompClient.connected);
-                if (props.navigation.state.params.stompClient.connected){
+            console.log("props.navigation.state.params.stompClient.connected");
+            console.log(props.navigation.state.params.stompClient.connected);
+            if (props.navigation.state.params.stompClient.connected){
+
+                let localModifiedArray = props.navigation.state.params.chatDetails.chatArray;
+                let chatIndex = -1;
+
+                localModifiedArray.forEach((element, index) => {
+                    if (element.messageID==msg.messageID){
+                        chatIndex = index;
+                    }
+                });
+
+                if (props.navigation.state.params.chatDetails.ChatType=='PRIVATE'){
+                    //send to queue
                     newMessage.data.status = "SENT";
 
-                    let localModifiedArray = props.navigation.state.params.chatDetails.chatArray;
-                    let chatIndex = -1;
-                    
-                    // console.log("Target Chat");
-                    // console.log(msg);
-
-                    // console.log("localModifiedArray of length - "+localModifiedArray.length);
-                    // console.log("Type - "+(typeof localModifiedArray));
-                    // console.log(localModifiedArray);
-                    // console.log("TARGET MessageID - " + );
-                    // for (let i = localModifiedArray.length; i>=0; i--){
-                    //     console.log("i-th chat");
-                    //     console.log(localModifiedArray[i]);
-
-                    //     if (localModifiedArray[i].messageID==msg.messageID){
-                    //         chatIndex = i;
-                    //     }
-                    // }
-
-                    localModifiedArray.forEach((element, index) => {
-                        // console.log("------------");
-                        // console.log(element);
-                        // console.log(index);
-                        if (element.messageID==msg.messageID){
-                            chatIndex = index;
-                        }
-                    });
-
                     if (chatIndex!=-1){
-                        console.log("CHAT FOUND");
-                        // localModifiedArray.push(newMessage.data);...
                         localModifiedArray[chatIndex] = newMessage.data;
                         props.navigation.state.params.modifyChatFunction(localModifiedArray, props.navigation.state.params.chatIndex);
                         Toast.show('Message sent.', toastProperties);
@@ -317,19 +297,31 @@ export const ChatScreen = (props) => {
                     }
                     else{
                         console.log("CHAT NOT FOUND");
-                    }                
+                    }
+                }
+                else if (props.navigation.state.params.chatDetails.ChatType=='GROUP'){
+                    
+                    newMessage.data.status = "SENT";
+
+                    if (chatIndex!=-1){
+                        localModifiedArray[chatIndex] = newMessage.data;
+                        props.navigation.state.params.modifyChatFunction(localModifiedArray, props.navigation.state.params.chatIndex);
+                        Toast.show('Message sent.', toastProperties);
+                        console.warn("Message sent");
+                        props.navigation.state.params.stompClient.send("/app/message/"+props.navigation.state.params.chatDetails.destinationURL, {}, JSON.stringify(newMessage));
+                        console.log("SENT to QUEUE");
+                    }
+                    else{
+                        console.log("CHAT NOT FOUND");
+                    }
                 }
                 else{
-                    Toast.show('Could not send message, check you internet connection!', toastProperties);
-                    console.warn('Could not send message, check you internet connection!');
+                    console.log("WRONG CHAT TYPE TO SEND");
                 }
             }
-            else if (props.navigation.state.params.chatDetails.ChatType=='GROUP'){
-                
-                console.log("GROUP MESSAGE SEND NOT Supported yet!");
-            }
             else{
-                console.log("WRONG CHAT TYPE TO SEND");
+                Toast.show('Could not send message, check you internet connection!', toastProperties);
+                console.warn('Could not send message, check you internet connection!');
             }
         }
     }

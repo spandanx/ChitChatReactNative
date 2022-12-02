@@ -419,7 +419,7 @@ export const HomeScreen = (props) => {
     }
 
     const connect = () => {
-        if (stompClient!=null){
+        if (stompClient != null){
             console.log("STOMPCLIENT is not null");
             if (stompClient.connected){
                 console.log("ALREADY CONNECTED");
