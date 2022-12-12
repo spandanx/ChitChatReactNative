@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {View, Button, TextInput, ActivityIndicator, Text} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import uuid from 'react-native-uuid';
-import {phoneToIdUrlPath, idToPhoneUrlPath} from '../properties/networks';
+import {phoneToIdUrlPath, idToPhoneUrlPath, jwtTokenUser, publicPath} from '../properties/networks';
 import Toast from 'react-native-root-toast';
 import {toastProperties} from '../style/styles';
 import { Dropdown } from 'react-native-element-dropdown';
@@ -67,7 +67,8 @@ export const LoginScreen = (props) => {
             method: 'GET',
             headers: {
                 Accept: 'application/json',
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer '+jwtTokenUser
             }
             })
             .then((response) => response.json())
@@ -78,7 +79,8 @@ export const LoginScreen = (props) => {
                         method: 'POST',
                         headers: {
                             Accept: 'application/json',
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer '+jwtTokenUser
                         },
                         body: JSON.stringify(body)
                         })
@@ -109,6 +111,7 @@ export const LoginScreen = (props) => {
         // }
         contactNumber = countryPhoneCode+contactNumber;
         console.warn("Phone number = "+contactNumber);
+        console.log('Bearer '+jwtTokenUser);
         let newUUID = uuid.v4();
         // setUserUuid(newUUID);
 
@@ -119,40 +122,72 @@ export const LoginScreen = (props) => {
         //checking if phone number exists
         console.warn("Checking if already exist");
         console.warn(phoneToIdUrlPath);
-        fetch(phoneToIdUrlPath+"?phonenumber="+contactNumber, {
-            method: 'GET',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json'
-            }
-            })
-            .then((response) => response.json())
-            .then((responseJson) => {
-                console.warn(responseJson);
-                if (responseJson.length==0){
-                    console.warn("Phone number does not exist, so creating it");
-                    Toast.show('Creating new account.', toastProperties);
-                    postData(phoneToIdUrlPath, body, setPhoneRegister, 'phonenumber', 'Contact number already exists, try with another number.');
-                    postData(idToPhoneUrlPath, body, setIdRegister, 'id', 'Could not generate UUID. Please restart the app.');
+
+        try{
+            fetch(phoneToIdUrlPath+"?phonenumber="+contactNumber, {
+            // fetch(publicPath, {
+                method: 'GET',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer '+jwtTokenUser
+                    // 'Authorization': 'Basic dXNlcjE6cGFzczE='
                 }
-                else{
-                    console.warn("Found existing phone number");
-                    Toast.show('Account already exists.', toastProperties);
-                    // console.warn("ID - "+  responseJson[0].id);
-                    storeUserinStorage('__UUID__', responseJson[0].id);
-                    setUserUuid(responseJson[0].id);
-                    setPhoneRegister(true);
-                    setIdRegister(true);
-                }
-                console.warn("Ops done");
-                setOpsDone(true);
-              })
-            .catch((err) => {
-                console.warn(err);
-                setOpsDone(true);
-                console.warn("Setting opsDone to true");
-                Toast.show('Could not connect to the server, please check your internet connection!', toastProperties);
-            });
+                })
+                .then((response) => 
+                    response.status == "200"? response.json() : response
+                    )
+                .then((responseJson) => {
+                    console.log("RESJSON - ");
+                    console.warn(responseJson);
+                    // console.log(responseJson.status);
+                    if(responseJson.status == '401'){
+                        Toast.show('Unauthorized!', toastProperties);
+                        console.log('Unauthorized!');
+                    }
+                    else if(responseJson.status == '400'){
+                        Toast.show('Bad Request!', toastProperties);
+                        console.log('Bad request!');
+                    }
+                    else{
+                        // responseJson = responseJson.json();
+                        // console.log(typeof responseJson);
+                        // console.log(responseJson.id);
+                        // console.log(responseJson);
+                        // console.log(responseJson[0].id);
+                        if (responseJson.length==0){
+                            console.warn("Phone number does not exist, so creating it");
+                            Toast.show('Creating new account.', toastProperties);
+                            postData(phoneToIdUrlPath, body, setPhoneRegister, 'phonenumber', 'Contact number already exists, try with another number.');
+                            postData(idToPhoneUrlPath, body, setIdRegister, 'id', 'Could not generate UUID. Please restart the app.');
+                        }
+                        else{
+                            console.warn("Found existing phone number");
+                            Toast.show('Account already exists.', toastProperties);
+                            storeUserinStorage('__UUID__', responseJson[0].id);
+                            setUserUuid(responseJson[0].id);
+                            setPhoneRegister(true);
+                            setIdRegister(true);
+                        }
+                    }
+                    console.warn("Ops done");
+                    setOpsDone(true);
+                    setLoginWait(false);
+                  })
+                .catch((err) => {
+                    console.log("ERR");
+                    console.warn(err);
+                    setOpsDone(true);
+                    setLoginWait(false);
+
+                    console.warn("Setting opsDone to true");
+                    Toast.show('Could not connect to the server, please check your internet connection!', toastProperties);
+                });
+        }
+        catch(ex) {
+            console.log("EX - ");
+            console.log(ex);
+        }
     }
 
     const checkUserinStorage = async() => {
